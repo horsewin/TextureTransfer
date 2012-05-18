@@ -22,7 +22,7 @@ int mouse_r = 0;
 int mpos[2];
 double trans[3] = {0.0, 0.0, 0.0};
 double theta[3] = {0.0, 0.0, 0.0};
-enum CONTROLLER{DECOMPOSITE, MANUPLATE, TRANSFER};
+enum CONTROLLER{DECOMPOSITE, MANUPLATE, TRANSFER, SELECT};
 CONTROLLER controllObject;
 
 const int SEPARATION = 5;
@@ -72,6 +72,11 @@ void DrawController()
   	  case TRANSFER:
   		  sprintf(str,"[r] Mode : Texture Transfer");
   		  break;
+
+  	  case SELECT:
+  		  sprintf(str,"[r] Mode : Selected texture");
+  		  break;
+
   }
   DrawString(str,font,10,20,0);
   glPopAttrib(); // write back color and Z buffer 
@@ -156,9 +161,10 @@ void keyboard(unsigned char key, int x, int y)
       break;
 
     case 'r':
-    	if(controllObject == MANUPLATE) controllObject = DECOMPOSITE;
-    	else if(controllObject == DECOMPOSITE) controllObject = TRANSFER;
-    	else controllObject = MANUPLATE;
+    	if(controllObject == MANUPLATE) 		controllObject = DECOMPOSITE;
+    	else if(controllObject == DECOMPOSITE)	controllObject = TRANSFER;
+    	else if(controllObject == TRANSFER)	controllObject = SELECT;
+    	else if(controllObject == SELECT)		controllObject = MANUPLATE;
       break;
   }	
 }
@@ -256,11 +262,11 @@ void mouse(int button, int state, int x, int y)
 
 			models[manupulation-1]->CorrespondTexCoord(viewport[window], modelview[window], projection[window], start_point, end_point, texPoint[0], texPoint[1], clickPoint[0], clickPoint[1]);
 
-			cout << " ------------ Texture Transfer Points ------------ " << endl;
-			cout << start_point.x << " " << start_point.y << endl;
-			cout << end_point.x << " " << end_point.y << endl;
-			cout << texPoint[0].x << " " << texPoint[0].y << endl;
-			cout << texPoint[1].x << " " << texPoint[1].y << endl << endl;
+//			cout << " ------------ Texture Transfer Points ------------ " << endl;
+//			cout << start_point.x << " " << start_point.y << endl;
+//			cout << end_point.x << " " << end_point.y << endl;
+//			cout << texPoint[0].x << " " << texPoint[0].y << endl;
+//			cout << texPoint[1].x << " " << texPoint[1].y << endl << endl;
 			point.clear();
 		}
 
@@ -477,30 +483,56 @@ void DrawTextureMonitor(int x, int y, int w, int h, ViewingModel * model, const 
 #endif
 
   IndexedMesh * im = model->mLSCM->mesh_.get();
-  int size = static_cast<int>(im->mTextureFaces.size());
+  if( controllObject != SELECT){
+	  int size = static_cast<int>(im->mTextureFaces.size());
 
-  glColor3d(0,1,0);
-  for(int i=0; i<size; i+=3){
-    Vector2 tmp1 = im->mTextureCoords[ im->mTextureFaces.at(i) - 1];
-    Vector2 tmp2 = im->mTextureCoords[ im->mTextureFaces.at(i+1) - 1];
-    Vector2 tmp3 = im->mTextureCoords[ im->mTextureFaces.at(i+2) - 1];
+	  glColor3d(0,1,0);
+	  for(int i=0; i<size; i+=3){
+		Vector2 tmp1 = im->mTextureCoords[ im->mTextureFaces.at(i) - 1];
+		Vector2 tmp2 = im->mTextureCoords[ im->mTextureFaces.at(i+1) - 1];
+		Vector2 tmp3 = im->mTextureCoords[ im->mTextureFaces.at(i+2) - 1];
 
-    double val = model->mLSCM->mesh_->mTexParts[i];
-    ColorSetting(val);
+		double val = model->mLSCM->mesh_->mTexParts[i];
+		ColorSetting(val);
 
 #if TEXTURE_TRIANGLES==0
-    glVertex2f(tmp1.x,tmp1.y);
-    glVertex2f(tmp2.x,tmp2.y);
-    glVertex2f(tmp2.x,tmp2.y);
-    glVertex2f(tmp3.x,tmp3.y);
-    glVertex2f(tmp3.x,tmp3.y);
-    glVertex2f(tmp1.x,tmp1.y);
+		glVertex2f(tmp1.x,tmp1.y);
+		glVertex2f(tmp2.x,tmp2.y);
+		glVertex2f(tmp2.x,tmp2.y);
+		glVertex2f(tmp3.x,tmp3.y);
+		glVertex2f(tmp3.x,tmp3.y);
+		glVertex2f(tmp1.x,tmp1.y);
 #else
-    glVertex2f(tmp1.x,tmp1.y);
-    glVertex2f(tmp2.x,tmp2.y);
-    glVertex2f(tmp3.x,tmp3.y);
+		glVertex2f(tmp1.x,tmp1.y);
+		glVertex2f(tmp2.x,tmp2.y);
+		glVertex2f(tmp3.x,tmp3.y);
 
 #endif
+	  }
+  }
+  else
+  {
+	  glColor3d(0,1,0);
+	  for(unsigned int i=0; i<model->mSelectedMesh.second.mTextureCoords.size(); i+=3)
+	  {
+			Vector2 tmp1 = model->mSelectedMesh.second.mTextureCoords[i+0].second;
+			Vector2 tmp2 = model->mSelectedMesh.second.mTextureCoords[i+1].second;
+			Vector2 tmp3 = model->mSelectedMesh.second.mTextureCoords[i+2].second;
+
+#if TEXTURE_TRIANGLES==0
+			glVertex2f(tmp1.x,tmp1.y);
+			glVertex2f(tmp2.x,tmp2.y);
+			glVertex2f(tmp2.x,tmp2.y);
+			glVertex2f(tmp3.x,tmp3.y);
+			glVertex2f(tmp3.x,tmp3.y);
+			glVertex2f(tmp1.x,tmp1.y);
+#else
+			glVertex2f(tmp1.x,tmp1.y);
+			glVertex2f(tmp2.x,tmp2.y);
+			glVertex2f(tmp3.x,tmp3.y);
+
+#endif
+	  }
   }
   glEnd();    
 

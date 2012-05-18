@@ -450,6 +450,22 @@ void ViewingModel::UpdateMatrix()
 	//  cout << x << endl;
 }
 
+void ViewingModel::SetSelectedMeshData(const int& loopVer) {
+	mSelectedMesh.second.vertex.push_back(
+			mLSCM->mesh_->mVertices[loopVer].point.x);
+	mSelectedMesh.second.vertex.push_back(
+			mLSCM->mesh_->mVertices[loopVer].point.y);
+	mSelectedMesh.second.vertex.push_back(
+			mLSCM->mesh_->mVertices[loopVer].point.z);
+	Vector2 tex;
+	tex.x = mLSCM->mesh_->mVertices[loopVer].tex_coord.x;
+	tex.y = mLSCM->mesh_->mVertices[loopVer].tex_coord.y;
+	std::pair<int, Vector2> t;
+	t.first = 0;
+	t.second = tex;
+	mSelectedMesh.second.mTextureCoords.push_back(t);
+}
+
 void ViewingModel::CorrespondTexCoord
 (GLint *viewport, GLdouble *modelview, GLdouble *projection,
  cv::Point2d pStart, cv::Point2d pEnd, Vector2 & t1, Vector2 & t2
@@ -468,8 +484,12 @@ void ViewingModel::CorrespondTexCoord
 	double dist;
 //	cout << "vertex ; " << im->vertex.size() << endl;
 
-	cout << pStart.x << " " << pStart.y << endl;
-	cout << pEnd.x << " " << pEnd.y << endl;
+	// for debug
+//	cout << pStart.x << " " << pStart.y << endl;
+//	cout << pEnd.x << " " << pEnd.y << endl;
+
+	mSelectedMesh.second.reset();
+
 	for(unsigned int loopVer=0; loopVer<im->mVertices.size(); loopVer++){
 		meshVertex.x = im->mVertices[loopVer].point.x;
 		meshVertex.y = im->mVertices[loopVer].point.y;
@@ -498,6 +518,8 @@ void ViewingModel::CorrespondTexCoord
 		  p1.y = objY;
 		  p1.z = objZ;
 		  ind1 = im->mVertices[loopVer].id;
+
+		  mSelectedMesh.first = ind1;
 		}
 
 		dist = sqrt( pow( (pEnd.x - winX) , 2) + pow( (pEnd.y - winY) , 2) );
@@ -514,7 +536,28 @@ void ViewingModel::CorrespondTexCoord
 //		cout << "Window = " << winX << "," << winY << endl;
 	}
 //	}
-  cout << "Strokes' indices : " << ind1 << "--" << ind2 << endl;
+  //cout << "Strokes' indices : " << ind1 << "--" << ind2 << endl;
+
+	if(!mLSCM->mesh_->mTexParts.empty()){
+		cout << "harmonic value=" << mLSCM->mesh_->mTexParts[ mSelectedMesh.first ] << endl;
+		double hVal = mLSCM->mesh_->mTexParts[ mSelectedMesh.first ]>=0.5? 0.5 : 0;
+		REP(loopVer,im->mVertices.size()){
+			if(hVal)
+			{
+				if( mLSCM->mesh_->mTexParts[loopVer] >= 0.5)
+				 {
+					SetSelectedMeshData (loopVer);
+				 }
+			}
+			else
+			{
+				if( mLSCM->mesh_->mTexParts[loopVer] < 0.5)
+				 {
+					SetSelectedMeshData (loopVer);
+				 }
+			}
+		}
+	}
 }
 
 /*

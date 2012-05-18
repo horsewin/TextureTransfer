@@ -27,7 +27,11 @@ std::istream& operator>>(std::istream& in, Vector3& v) {
 IndexedMesh::IndexedMesh() 
 : mInFacet(false) 
 { 
-
+	mVertices.clear();
+	mFaces.clear();
+	mTextureCoords.clear();
+	mTexParts.clear();
+	mTextureFaces.clear();
 }
 
 IndexedMesh::~IndexedMesh() 

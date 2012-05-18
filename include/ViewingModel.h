@@ -34,6 +34,16 @@ struct Mesh
   std::vector<unsigned int> ind;
   int ind_max;
   int flag;
+  void reset(){
+	  vertex.clear();
+	  normal.clear();
+	  mTextureCoords.clear();
+	  index.clear();
+	  ind.clear();
+	  nIndex = 0;
+	  ind_max = 0;
+	  flag = 0;
+  }
 };
 
 class ViewingModel{
@@ -67,6 +77,8 @@ class ViewingModel{
   void LoadObjModel();
   std::deque<Texture *> LoadTextures(Lib3dsFile * pModel, std::string dirpath);
 
+  void SetSelectedMeshData(const int& loopVer);
+
  public:
 //  std::vector<boost::shared_ptr<LSCM>> mLSCM;
     boost::shared_ptr<LSCM> mLSCM;
@@ -75,6 +87,7 @@ class ViewingModel{
   double mAngles[3];
 
   std::deque<Texture *> texturesList; // A set of Textures 2011.6.7
+  std::pair<double,Mesh> mSelectedMesh;
 
  private:
 
