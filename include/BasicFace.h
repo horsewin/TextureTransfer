@@ -3,9 +3,15 @@
 
 /* Basic geometric types */
 
+//-------------------------------------------------------------------
+// Includes
+//-------------------------------------------------------------------
 #include <cmath>
 #include <vector>
 
+//-------------------------------------------------------------------
+// Class definition
+//-------------------------------------------------------------------
 class Vector2 {
 public:
     Vector2(double x_in, double y_in) : x(x_in), y(y_in) { }
@@ -25,6 +31,13 @@ public:
         double l = length() ;
         x /= l ; y /= l ; z /= l ;
     }
+
+    Vector3 operator=(float *t){
+        return Vector3(
+            t[0], t[1], t[2]
+        ) ;
+    }
+
     double x ;
     double y ;
     double z ;

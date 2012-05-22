@@ -4,6 +4,9 @@
 #ifndef VIEWINGMODEL_H_
 #define VIEWINGMODEL_H_
 
+//-------------------------------------------------------------------
+// Includes
+//-------------------------------------------------------------------
 #include "OpenGL.h"
 #include "BasicFace.h"
 
@@ -32,6 +35,10 @@ struct Mesh
   std::vector<std::pair<int,Vector2> > mTextureCoords;
   std::vector<unsigned int> index;
   std::vector<unsigned int> ind;
+
+  std::vector<Vector3> ambient, diffuse, specular;
+  std::vector<int> materials;
+
   int ind_max;
   int flag;
   void reset(){
@@ -46,6 +53,9 @@ struct Mesh
   }
 };
 
+//-------------------------------------------------------------------
+// Class definition
+//-------------------------------------------------------------------
 class ViewingModel{
  public:
   ViewingModel(char * name = NULL);
@@ -61,6 +71,9 @@ class ViewingModel{
 
   void  QueryNormal(const int & outer_loop, const int & mesh_index, GLdouble * normal);
   void  QueryVertex(const int & outer_loop, const int & mesh_index, GLdouble * vertex);
+  void  QueryAmbient(const int & outer_loop, const int & mesh_index, GLfloat * ambient);
+  void  QueryDiffuse(const int & outer_loop, const int & mesh_index, GLfloat * diffuse);
+  void  QuerySpecular(const int & outer_loop, const int & mesh_index, GLfloat  * specular);
   double QueryVertexColor(const int & outer_loop, const int & mesh_index) const;
 
   int GetMeshSize() const;
@@ -81,8 +94,7 @@ class ViewingModel{
 
  public:
 //  std::vector<boost::shared_ptr<LSCM>> mLSCM;
-    boost::shared_ptr<LSCM> mLSCM;
-//  LSCM * mLSCM;
+  boost::shared_ptr<LSCM> mLSCM;
   float mScales;
   double mAngles[3];
 
@@ -92,8 +104,8 @@ class ViewingModel{
  private:
 
   char * mModelname;
-  int mSumOfVertices; // the number of vertices of this model
-  int mSumOfIndices; // the number of strokes added to this model
+  int mSumOfVertices; 									// the number of vertices of this model
+  int mSumOfIndices; 									// the number of strokes added to this model
   std::vector<int> mMinStartIndex;
   std::vector<int> mMinEndIndex;
 
@@ -105,6 +117,7 @@ class ViewingModel{
   bool mIsConvert;
   bool mIsLoadMatrix;
   bool mHasTexture;
+  bool
 };
 
 #endif
