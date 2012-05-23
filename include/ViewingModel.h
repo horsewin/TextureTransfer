@@ -32,7 +32,7 @@ struct Mesh
   unsigned int nIndex;
   std::vector<float> vertex;
   std::vector<float> normal;
-  std::vector<std::pair<int,Vector2> > mTextureCoords;
+  std::vector<std::pair<int,Vector2> > mTextureCoords; // first: the index of selected vertex, second: the texture coords of selected vertex
   std::vector<unsigned int> index;
   std::vector<unsigned int> ind;
 
@@ -81,6 +81,14 @@ class ViewingModel{
   int GetMeshFlag(const int & outer_loop) const;
   void IncrementSumOfStrokes();
 
+	bool IsMeshSelected() const {
+		return mMeshSelected;
+	}
+
+	void SetMeshSelected(bool meshSelected) {
+		mMeshSelected = meshSelected;
+	}
+
  private:
   void Load3DModel();
   void VertexCorrection();
@@ -99,7 +107,7 @@ class ViewingModel{
   double mAngles[3];
 
   std::deque<Texture *> texturesList; // A set of Textures 2011.6.7
-  std::pair<double,Mesh> mSelectedMesh;
+  std::pair<int,Mesh> mSelectedMesh; //first : an index for the matrix having harmonic field(mTexparts), second: a set of meshes
 
  private:
 
@@ -117,7 +125,7 @@ class ViewingModel{
   bool mIsConvert;
   bool mIsLoadMatrix;
   bool mHasTexture;
-  bool
+  bool mMeshSelected;
 };
 
 #endif

@@ -1,3 +1,6 @@
+//-------------------------------------------------------------------
+// Includes
+//-------------------------------------------------------------------
 #include <vector>
 #include <iostream>
 #include <stdio.h>
@@ -12,11 +15,23 @@
 #include "Bitmap.h"
 #include "TransferController.h"
 
+//---------------------------------------------------------------------------
+// Constant/Define
+//---------------------------------------------------------------------------
 #define HARMONIC 1
 #define TEXTURE_TRIANGLES 1
+#define VISUALIZE 0 //OpenCVのウィンドウ上にテクスチャ展開の点群を表示する
+#define FEEDBACK_VISUALIZE 0 //OpenCVから計算してきた輪郭情報をGL上に持っていくときの輪郭情報を表示する
 
-using namespace std;
+const int SEPARATION = 5;
+const static GLfloat lit_amb[4]={0.4f, 0.4f, 0.4f,1.0};	/* 環境光の強さ */
+const static GLfloat lit_dif[4]={1.0, 1.0, 1.0, 1.0};	/* 拡散光の強さ */
+const static GLfloat lit_spc[4]={0.4f, 0.4f, 0.4f, 1.0};	/* 鏡面反射光の強さ */
+const static GLfloat lit_pos[4]={0.0, 0.0, -9.0, 1.0};	/* 光源の位置 */
 
+//---------------------------------------------------------------------------
+// Global
+//---------------------------------------------------------------------------
 // to control object
 int mouse_l = 0;
 int mouse_m = 0;
@@ -24,36 +39,36 @@ int mouse_r = 0;
 int mpos[2];
 double trans[3] = {0.0, 0.0, 0.0};
 double theta[3] = {0.0, 0.0, 0.0};
+
 enum CONTROLLER{DECOMPOSITE, MANUPLATE, TRANSFER, SELECT};
 CONTROLLER controllObject;
-
-const int SEPARATION = 5;
-/////////////////////
 
 GLint viewport[SEPARATION][4];
 GLdouble modelview[SEPARATION][16];
 GLdouble projection[SEPARATION][16];
-
-static GLfloat lit_amb[4]={0.4f, 0.4f, 0.4f,1.0};	/* 環境光の強さ */
-static GLfloat lit_dif[4]={1.0, 1.0, 1.0, 1.0};	/* 拡散光の強さ */
-static GLfloat lit_spc[4]={0.4f, 0.4f, 0.4f, 1.0};	/* 鏡面反射光の強さ */
-static GLfloat lit_pos[4]={0.0, 0.0, -9.0, 1.0};	/* 光源の位置 */
 
 Vector2 texPoint[2];
 Vector3 clickPoint[2];
 
 
 void *font = GLUT_BITMAP_HELVETICA_18;
-vector<int *> point;
+std::vector<int *> point;
 
 ViewingModel * models[2];
+TransferController controller;
 short manupulation;
 
 void SetMatrixParam( );
 void DrawModelMonitor(int x, int y, int w, int h, ViewingModel * model, bool isStroke, const int & separationW);
 void DrawTextureMonitor(int x, int y, int w, int h, ViewingModel * model, const int & seprationW);
-void ConvexHull();
+void PointsDisplay();
+void TexturePaste(bool color = false);
 
+using namespace std;
+
+//---------------------------------------------------------------------------
+// Code
+//---------------------------------------------------------------------------
 //---------- display font image ------------//
 void DrawString(const char *str,void *font,float x,float y,float z)
 {
@@ -178,18 +193,26 @@ void keyboard(unsigned char key, int x, int y)
       break;
 
     case 's':
-    	const char * f_str = "mesh.bmp";
     	if(manupulation == 1){
+        	const char * f_str = "mesh1.bmp";
     		WriteBitmapFromGL(f_str, 0, W_HEIGHT/2, W_WIDTH/2,W_HEIGHT/2);
-        	cout << "Save decomposited mesh from Obj1 -> " << f_str << endl;
+        	cout << "Save decomposed mesh from Obj1 -> " << f_str << endl;
     	}else{
+        	const char * f_str = "mesh2.bmp";
     		WriteBitmapFromGL(f_str, W_WIDTH/2,W_HEIGHT/2, W_WIDTH/2,W_HEIGHT/2);
-        	cout << "Save decomposited mesh from Obj2 -> " << f_str << endl;
+
+        	cout << "Save decomposed mesh from Obj2 -> " << f_str << endl;
     	}
-//    	ConvexHull();
-    	TransferController controller;
-    	controller.SetContourPoints();
-    	controller.AcquireMatching();
+		models[manupulation - 1]->SetMeshSelected(true);
+
+    	PointsDisplay();
+
+		if(models[0]->IsMeshSelected() && models[1]->IsMeshSelected())
+		{
+			controller.SetContourPoints();
+			controller.AcquireMatching();
+			TexturePaste(true);
+		}
     	break;
   }	
 }
@@ -233,7 +256,7 @@ void mouse(int button, int state, int x, int y)
 			{
 				models[manupulation-1]->UpdateMatrix();
 				models[manupulation-1]->RenewMeshDataConstruct(2);
-				models[manupulation-1]->mLSCM->mesh_->FindTextureMax();
+				models[manupulation-1]->mLSCM->mMesh->FindTextureMax();
 			}
 
 			point.clear();
@@ -479,6 +502,15 @@ void DrawModelMonitor(int x, int y, int w, int h, ViewingModel * model, bool isS
   }
   DrawController();
 
+  if(model->IsMeshSelected()){
+	  glPushAttrib(GL_CURRENT_BIT|GL_DEPTH_BUFFER_BIT); // retrieve color and Z buffer
+	  glColor3d(1,0,1);
+	  void *letter = GLUT_BITMAP_TIMES_ROMAN_24;
+	  DrawString("SELECTED", letter, -10, -10, 0);
+	  glPopAttrib(); // write back color and Z buffer
+
+  }
+
   // frame
 //  glBegin(GL_LINES);
 //  glX = W_WIDTH/2;
@@ -503,8 +535,8 @@ void DrawTextureMonitor(int x, int y, int w, int h, ViewingModel * model, const 
   
   glMatrixMode(GL_PROJECTION);
   glLoadIdentity();
-  glOrtho(model->mLSCM->mesh_->mTexMin.x, model->mLSCM->mesh_->mTexMax.x, 
- 	  model->mLSCM->mesh_->mTexMin.y, model->mLSCM->mesh_->mTexMax.y, 
+  glOrtho(model->mLSCM->mMesh->mTexMin.x, model->mLSCM->mMesh->mTexMax.x, 
+ 	  model->mLSCM->mMesh->mTexMin.y, model->mLSCM->mMesh->mTexMax.y, 
  	  0, 1.0);
 
   glMatrixMode(GL_MODELVIEW);
@@ -530,17 +562,17 @@ void DrawTextureMonitor(int x, int y, int w, int h, ViewingModel * model, const 
   glBegin(GL_TRIANGLES);
 #endif
 
-  IndexedMesh * im = model->mLSCM->mesh_.get();
+  IndexedMesh * im = model->mLSCM->mMesh.get();
   if( controllObject != SELECT){
 	  int size = static_cast<int>(im->mTextureFaces.size());
 
-	  glColor3d(0,1,0);
+//	  glColor3d(0,1,0);
 	  for(int i=0; i<size; i+=3){
 		Vector2 tmp1 = im->mTextureCoords[ im->mTextureFaces.at(i) - 1];
 		Vector2 tmp2 = im->mTextureCoords[ im->mTextureFaces.at(i+1) - 1];
 		Vector2 tmp3 = im->mTextureCoords[ im->mTextureFaces.at(i+2) - 1];
 
-		double val = model->mLSCM->mesh_->mTexParts[i];
+		double val = model->mLSCM->mMesh->mTexParts[i];
 		ColorSetting(val);
 
 #if TEXTURE_TRIANGLES==0
@@ -561,12 +593,15 @@ void DrawTextureMonitor(int x, int y, int w, int h, ViewingModel * model, const 
   //in the case of selecting parts
   else
   {
-	  glColor3d(0,1,0);
+//	  glColor3d(0,1,0);
 	  for(unsigned int i=0; i<model->mSelectedMesh.second.mTextureCoords.size(); i+=3)
 	  {
 			Vector2 tmp1 = model->mSelectedMesh.second.mTextureCoords[i+0].second;
 			Vector2 tmp2 = model->mSelectedMesh.second.mTextureCoords[i+1].second;
 			Vector2 tmp3 = model->mSelectedMesh.second.mTextureCoords[i+2].second;
+
+			double value = model->mLSCM->mMesh->mTexParts[model->mSelectedMesh.second.index[i]];
+			ColorSetting(value);
 
 #if TEXTURE_TRIANGLES==0
 			glVertex2f(tmp1.x,tmp1.y);
@@ -617,36 +652,93 @@ void SetMatrixParam( )
 //	glPopMatrix();
 }
 
-void ConvexHull()
+void PointsDisplay()
 {
-	IndexedMesh * tmpMesh = models[manupulation-1]->mLSCM->mesh_.get();
-	double ratio_x = (W_WIDTH*0.5 - 0) / (tmpMesh->mTexMax.x - tmpMesh->mTexMin.x);
-	double ratio_y = (W_HEIGHT*0.5 - 0) / (tmpMesh->mTexMax.y - tmpMesh->mTexMin.y);
+	IndexedMesh * tmpMesh = models[manupulation-1]->mLSCM->mMesh.get();
+	double ratio_x = (W_WIDTH*0.5 -  1) / (tmpMesh->mTexMax.x - tmpMesh->mTexMin.x);
+	double ratio_y = (W_HEIGHT*0.5 - 1) / (tmpMesh->mTexMax.y - tmpMesh->mTexMin.y);
 
-	IplImage * input = cvLoadImage("mesh.bmp", 0);
-	IplImage* img = cvCreateImage( cvGetSize(input), 8, 3);
+	IplImage * input = cvLoadImage("mesh1.bmp", 0);
+#if VISUALIZE == 1
+	IplImage * src   = cvCreateImage( cvGetSize(input), 8, 3);
+	const char * winName = "Convex Hull";
+	cvZero(src);
+#endif
 
-    vector<cv::Point> meshes;
-
+	controller.mMeshes[manupulation-1].clear();
     for(unsigned int i=0; i<models[manupulation-1]->mSelectedMesh.second.mTextureCoords.size(); i++){
 		Vector2 tmp1 = models[manupulation-1]->mSelectedMesh.second.mTextureCoords[i].second;
-		int x = (tmp1.x - tmpMesh->mTexMin.x) * ratio_x;
-		int y = input->height - (tmp1.y - tmpMesh->mTexMin.y) * ratio_y;
-		cv::Point tmp(x, y);
-		meshes.push_back(tmp);
+		cv::Point tmp;
+		tmp.x = (tmp1.x - tmpMesh->mTexMin.x) * ratio_x;
+		tmp.y = (input->height - (tmp1.y - tmpMesh->mTexMin.y) * ratio_y) - 1;
+		pair<int , cv::Point > tmpPair;
+		tmpPair.first  = models[manupulation-1]->mSelectedMesh.second.index[i];
+		tmpPair.second = tmp;
+		controller.mMeshes[manupulation-1].push_back(tmpPair);
+#if VISUALIZE == 1
+		cvCircle( src, tmp, 2, CV_RGB( 255, 255, 0 ), CV_FILLED );
+#endif
+//		cout << "Model" << manupulation-1 << " Index=" << tmpPair.first << " ; HarmonicVal=" << models[manupulation-1]->mLSCM->mMesh->mTexParts[tmpPair.first] << endl;
+		controller.SetHashmap( tmp.x, tmp.y, tmpPair.first, manupulation-1);
 	}
-	const char * winName = "Convex Hull";
-	cvZero(img);
-	REP(i, meshes.size()){
-	 cvCircle( img, meshes[i], 2, CV_RGB( 255, 255, 0 ), CV_FILLED );
-	}
+
+
+//	REP(i, meshes.size()){
+//#if VISUALIZE == 1
+//		cvCircle( src, meshes[i].second, 2, CV_RGB( 255, 255, 0 ), CV_FILLED );
+//#endif
+//		controller.SetHashmap( meshes[i].second.x, meshes[i].second.y, meshes[i].first, manupulation-1);
+//	}
+#if VISUALIZE == 1
 	cvNamedWindow(winName, 1);
-	cvShowImage( winName, img );
+	cvShowImage( winName, src);
 
-	int key = cvWaitKey(0);
-	cvReleaseImage(&img);
+	cvWaitKey(0);
+	cvReleaseImage(&src);
+#endif
 	cvReleaseImage(&input);
+}
 
+void TexturePaste(bool color)
+{
+	if(color){
+#if FEEDBACK_VISUALIZE == 1
+		IplImage * input = cvLoadImage("mesh1.bmp", 0);
+		IplImage * src   = cvCreateImage( cvGetSize(input), 8, 3);
+		const char * winName = "Convex Hull";
+		cvZero(src);
+#endif
+
+		REP(id,controller.mMatchingPoints.size()){
+			int idModel0 = controller.GetHashmap((int)controller.mMatchingPoints[id].first.x, (int)controller.mMatchingPoints[id].first.y, 0);
+			int idModel1 = controller.GetHashmap((int)controller.mMatchingPoints[id].second.x, (int)controller.mMatchingPoints[id].second.y, 1);
+
+//				printf(" Matching0(%d,%d):(%d,%d)\n",(int)controller.mMatchingPoints[id].first.x, (int)controller.mMatchingPoints[id].first.y, controller.mMeshes[0].at(idModel0).second.x, controller.mMeshes[0].at(idModel0).second.y);
+//				printf(" Matching1(%d,%d):(%d,%d)\n\n",(int)controller.mMatchingPoints[id].second.x, (int)controller.mMatchingPoints[id].second.y, controller.mMeshes[1].at(idModel1).second.x, controller.mMeshes[1].at(idModel1).second.y);
+//				printf("(%d , %d) : (%lf -> %lf)\n", idModel1, idModel0, models[1]->mLSCM->mMesh->mTexParts[idModel1], models[0]->mLSCM->mMesh->mTexParts[idModel0]);
+
+			models[0]->mLSCM->mMesh->mTexParts[idModel0] = models[1]->mLSCM->mMesh->mTexParts[idModel1];
+#if FEEDBACK_VISUALIZE == 1
+			cvCircle( src, cvPoint((int)controller.mMatchingPoints[id].first.x, (int)controller.mMatchingPoints[id].first.y), 2, CV_RGB( 255, 255, 0 ), CV_FILLED );
+#endif
+
+		}
+		cout << "Texture Transfer DONE!! 1 -> 0" << endl;
+
+		//reset selected mesh
+		REP(i,2){
+			models[i]->SetMeshSelected(false);
+		}
+		controller.InitHashmap();
+#if FEEDBACK_VISUALIZE == 1
+		cvNamedWindow(winName, 1);
+		cvShowImage( winName, src);
+
+		cvWaitKey(0);
+		cvReleaseImage(&src);
+		cvReleaseImage(&input);
+#endif
+	}
 }
 
 void Init()
@@ -667,18 +759,21 @@ void Init()
 
   //load 3ds model
   models[0] = new ViewingModel("Model3DS/DORA.3ds");
-  models[1] = new ViewingModel("Model3DS/HatuneMiku.3ds");
+  models[1] = new ViewingModel("Model3DS/DORA.3ds");
   manupulation = 1;
 
   models[0]->ConvertDataStructure();
   models[0]->mLSCM->run("CG","");
-  models[0]->mLSCM->mesh_->save("Model3DS/test2.obj");
-  models[0]->mLSCM->mesh_->FindTextureMax();
+  models[0]->mLSCM->mMesh->save("Model3DS/test2.obj");
+  models[0]->mLSCM->mMesh->FindTextureMax();
 
   models[1]->ConvertDataStructure();
   models[1]->mLSCM->run("CG","");
-  models[1]->mLSCM->mesh_->save("Model3DS/voxel3.obj");
-  models[1]->mLSCM->mesh_->FindTextureMax();
+  models[1]->mLSCM->mMesh->save("Model3DS/voxel3.obj");
+  models[1]->mLSCM->mMesh->FindTextureMax();
+
+  controller.InitHashmap();
+
 }
 
 int main(int argc, char *argv[])

@@ -42,7 +42,9 @@
  *
  */
 
-
+//-------------------------------------------------------------------
+// Includes
+//-------------------------------------------------------------------
 #include <NL/nl.h>
 
 #include <vector>
@@ -51,6 +53,9 @@
 
 #include "LSCM.h"
 
+//---------------------------------------------------------------------------
+// Global
+//---------------------------------------------------------------------------
 char* type_solver;
 using namespace std;
 
@@ -98,6 +103,11 @@ Vector2 operator-(const Vector2& v1, const Vector2& v2) {
     ) ;
 }
 
+
+//---------------------------------------------------------------------------
+// Code
+//---------------------------------------------------------------------------
+
 // Outline of the algorithm:
 
 // 1) Find an initial solution by projecting on a plane
@@ -107,13 +117,12 @@ Vector2 operator-(const Vector2& v1, const Vector2& v2) {
 // 4) Solve the equation with OpenNL
 // 5) Copy OpenNL solution to the u,v coordinates
 
-
 void LSCM::apply() {
-  int nb_vertices = mesh_->mVertices.size() ;
+  int nb_vertices = mMesh->mVertices.size() ;
   project() ;
   nlNewContext() ;
         
-  std::cout <<  type_solver << std::endl;
+//  std::cout <<  type_solver << std::endl;
   
   if (!strcmp(type_solver,"CG")) {
     nlSolverParameteri(NL_SOLVER, NL_CG) ;
@@ -199,21 +208,21 @@ void LSCM::apply() {
   setup_lscm() ;
   nlEnd(NL_MATRIX) ;
   nlEnd(NL_SYSTEM) ;
-  std::cout << "Solving ..." << std::endl ;
+//  std::cout << "Solving ..." << std::endl ;
   nlSolve() ;
   solver_to_mesh() ;
   double time ;
   NLint iterations;
   nlGetDoublev(NL_ELAPSED_TIME, &time) ;
-  nlGetIntergerv(NL_USED_ITERATIONS, &iterations); 
-  std::cout << "Solver time: " << time << std::endl ;
+  nlGetIntergerv(NL_USED_ITERATIONS, &iterations);
+  std::cout << "Solver time: " << time <<" , ";
   std::cout << "Used iterations: " << iterations << std::endl ;
   nlDeleteContext(nlGetCurrent()) ;
 }
 
 void LSCM::setup_lscm() {
-  for(unsigned int i=0; i<mesh_->mFaces.size(); i++) {
-    const Facet& F = mesh_->mFaces[i] ;
+  for(unsigned int i=0; i<mMesh->mFaces.size(); i++) {
+    const Facet& F = mMesh->mFaces[i] ;
     setup_lscm(F) ;
   }
 }
@@ -224,7 +233,7 @@ void LSCM::setup_lscm() {
 // (however, this may be invalid for concave facets)
 void LSCM::setup_lscm(const Facet& F) {
   for(unsigned int i=1; i < F.size() - 1; i++) {
-    setup_conformal_map_relations(mesh_->mVertices[F[0]], mesh_->mVertices[F[i]], mesh_->mVertices[F[i+1]]) ;
+    setup_conformal_map_relations(mMesh->mVertices[F[0]], mMesh->mVertices[F[i]], mMesh->mVertices[F[i+1]]) ;
   }
 }
 
@@ -323,8 +332,8 @@ void LSCM::setup_conformal_map_relations(
  * copies u,v coordinates from OpenNL solver to the mesh.
  */
 void LSCM::solver_to_mesh() {
-  for(unsigned int i=0; i<mesh_->mVertices.size(); i++) {
-    Vertex& it = mesh_->mVertices[i] ;
+  for(unsigned int i=0; i<mMesh->mVertices.size(); i++) {
+    Vertex& it = mMesh->mVertices[i] ;
     double u = nlGetVariable(2 * it.id    ) ;
     double v = nlGetVariable(2 * it.id + 1) ;
     it.tex_coord = Vector2(u,v) ;
@@ -335,8 +344,8 @@ void LSCM::solver_to_mesh() {
  * copies u,v coordinates from the mesh to OpenNL solver.
  */
 void LSCM::mesh_to_solver() {
-  for(unsigned int i=0; i<mesh_->mVertices.size(); i++) {
-    Vertex& it = mesh_->mVertices[i] ;
+  for(unsigned int i=0; i<mMesh->mVertices.size(); i++) {
+    Vertex& it = mMesh->mVertices[i] ;
     double u = it.tex_coord.x ;
     double v = it.tex_coord.y ;
     nlSetVariable(2 * it.id    , u) ;
@@ -361,8 +370,8 @@ void LSCM::project() {
   double ymax = -1e30 ;
   double zmax = -1e30 ;
   
-  for(i=0; i<mesh_->mVertices.size(); i++) {
-    const Vertex& v = mesh_->mVertices[i] ;
+  for(i=0; i<mMesh->mVertices.size(); i++) {
+    const Vertex& v = mMesh->mVertices[i] ;
     xmin = nl_min(v.point.x, xmin) ;
     ymin = nl_min(v.point.y, xmin) ;
     zmin = nl_min(v.point.z, xmin) ;
@@ -413,8 +422,8 @@ void LSCM::project() {
   Vertex* vxmax = NULL ;
   double  umax = -1e30 ;
   
-  for(i=0; i<mesh_->mVertices.size(); i++) {
-    Vertex& V = mesh_->mVertices[i] ;
+  for(i=0; i<mMesh->mVertices.size(); i++) {
+    Vertex& V = mMesh->mVertices[i] ;
     double u = V.point * V1 ;
     double v = V.point * V2 ;
     V.tex_coord = Vector2(u,v) ;
@@ -437,7 +446,7 @@ void LSCM::run(const char * t_solver, const char * filename) {
   type_solver = new char[len];
   strcpy(type_solver, t_solver);
 
-  std::cout << "Running LSCM ..." << std::endl ;
+//  std::cout << "Running LSCM ..." << std::endl ;
   //  mesh_->load(filename) ;
 
   apply() ;
@@ -448,7 +457,7 @@ void LSCM::run(const char * t_solver, const char * filename) {
 
 LSCM::LSCM(void)
 {
-	mesh_ = boost::shared_ptr<IndexedMesh>(new IndexedMesh());
+	mMesh = boost::shared_ptr<IndexedMesh>(new IndexedMesh());
   //mesh_ = new IndexedMesh();
 }
 

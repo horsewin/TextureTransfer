@@ -1,3 +1,13 @@
+/*
+ * ViewingModel.cc
+ *
+ *  Created on: 2012/04/01
+ *      Author: umakatsu
+ */
+
+//-------------------------------------------------------------------
+// Includes
+//-------------------------------------------------------------------
 #include "main.h"
 #include "ViewingModel.h"
 #include "LSCM.h"
@@ -19,15 +29,20 @@
 #include <cstring>
 #include <string.h>
 
-
+//---------------------------------------------------------------------------
+// Constant/Define
+//---------------------------------------------------------------------------
 const int weight = 1000;
 
+int ind1, ind2;
+
+//---------------------------------------------------------------------------
+// Global
+//---------------------------------------------------------------------------
 using namespace std;
 using namespace CVD;
 using namespace boost::numeric;
 using namespace Eigen;
-
-int ind1, ind2;
 
 namespace{
   inline void SetAdjacentValue(const int & i1, const int & i2, const int & i3, boost::numeric::ublas::mapped_matrix<int> & mat)
@@ -55,14 +70,18 @@ namespace{
       mat_fre(i3,i3) += 1;
     }  
   }
+
+  inline Vector3 OperatorEqual(float *t){
+      return Vector3(
+          t[0], t[1], t[2]
+      ) ;
+  }
+
 }
 
-//Vector2 operator=(float t[2]){
-//    return Vector2(
-//        t[0], t[1]
-//    ) ;
-//}
-
+//---------------------------------------------------------------------------
+// Code
+//---------------------------------------------------------------------------
 bool ViewingModel::CheckFittingVertices
 (GLint *viewport, GLdouble *modelview, GLdouble *projection, 
  cv::Point2d start_point, cv::Point2d end_point)
@@ -106,7 +125,7 @@ bool ViewingModel::CheckFittingVertices
       } 
     }
   }	
-  cout << "Strokes' indices : " << mMinEndIndex[size_set_stroke] << "--" << mMinStartIndex[size_set_stroke] << endl;
+//  cout << "Strokes' indices : " << mMinEndIndex[size_set_stroke] << "--" << mMinStartIndex[size_set_stroke] << endl;
   return true;
 }
 
@@ -145,12 +164,19 @@ void ViewingModel::Load3DSModel( void )
 
 	  mMesh.resize(m_model->nmeshes);//メッシュ分メモリ確保
 
-//      Vector2 tex1 = mesh->texcos[mesh->faces[loopX].index[0] ];
-//      Vector2 tex2 = mesh->texcos[mesh->faces[loopX].index[1] ];
-//      mMesh[loop].mTextureCoords.push_back(tex1);
-//      mMesh[loop].mTextureCoords.push_back(tex2);
+	  REP(mats,m_model->nmaterials){
+		  Vector3 tmpAmbient, tmpDiffuse, tmpSpecular;
+//		  tmpAmbient  = m_model->materials[mats]->ambient;
+//		  tmpDiffuse  = m_model->materials[mats]->diffuse;
+//		  tmpSpecular = m_model->materials[mats]->specular;
+		  tmpAmbient  = OperatorEqual(m_model->materials[mats]->ambient);
+		  tmpDiffuse  = OperatorEqual(m_model->materials[mats]->diffuse);
+		  tmpSpecular = OperatorEqual(m_model->materials[mats]->specular);
+		  mMesh[0].ambient.push_back(tmpAmbient);
+		  mMesh[0].diffuse.push_back(tmpDiffuse);
+		  mMesh[0].specular.push_back(tmpSpecular);
+	  }
 
-	  cout << "Materials : " << m_model->nmaterials << endl;
 	  for(int loop = 0; loop < m_model->nmeshes;++loop){
 	    mesh = m_model->meshes[loop];//mLoop番目のメッシュへのポインタ
 	    if(mesh->nfaces == 0) {
@@ -184,6 +210,8 @@ void ViewingModel::Load3DSModel( void )
 	      //3頂点目
 	      memcpy(&mMesh[loop].normal[loopX*9+6],&normal[loopX][0],sizeof(float)*3);
 	      memcpy(&mMesh[loop].vertex[loopX*9+6],&mesh->vertices[ mesh->faces[loopX].index[2] ][0],sizeof(float)*3);
+
+	      mMesh[loop].materials.push_back(mesh->faces[loopX].material);
 
 	      // 現在のメッシュの3頂点に対してインデックスの設定
 	      for(int idmesh=0;idmesh<3;idmesh++){
@@ -219,7 +247,7 @@ void ViewingModel::LoadObjModel( void )
 	std::ifstream input(mModelname);
 
 //	IndexedMesh * tmpMesh = mLSCM[0]->mesh_.get();
-	IndexedMesh * tmpMesh = mLSCM->mesh_.get();
+	IndexedMesh * tmpMesh = mLSCM->mMesh.get();
 	tmpMesh->clear();
 	while(input) {
 		char line[1024] ;
@@ -404,7 +432,8 @@ void ViewingModel::UpdateMatrix()
 
 	Q.reserve(2*mSumOfIndices); // desinate the number of non-zero approximately
 
-	// a set of indices of strokes
+	// a set of indices of strokes			TransferController controller;
+
 	int * hash_table = new int[mSumOfVertices];
 	REP(i,mSumOfVertices) hash_table[i] = 0;
 	REP(i,mSumOfIndices){
@@ -451,15 +480,22 @@ void ViewingModel::UpdateMatrix()
 }
 
 void ViewingModel::SetSelectedMeshData(const int& loopVer) {
+	//vertex info
 	mSelectedMesh.second.vertex.push_back(
-			mLSCM->mesh_->mVertices[loopVer].point.x);
+			mLSCM->mMesh->mVertices[loopVer].point.x);
 	mSelectedMesh.second.vertex.push_back(
-			mLSCM->mesh_->mVertices[loopVer].point.y);
+			mLSCM->mMesh->mVertices[loopVer].point.y);
 	mSelectedMesh.second.vertex.push_back(
-			mLSCM->mesh_->mVertices[loopVer].point.z);
+			mLSCM->mMesh->mVertices[loopVer].point.z);
+
+	//index info
+	mSelectedMesh.second.index.push_back(loopVer);
+
+	//texture info
 	Vector2 tex;
-	tex.x = mLSCM->mesh_->mVertices[loopVer].tex_coord.x;
-	tex.y = mLSCM->mesh_->mVertices[loopVer].tex_coord.y;
+	tex.x = mLSCM->mMesh->mVertices[loopVer].tex_coord.x;
+	tex.y = mLSCM->mMesh->mVertices[loopVer].tex_coord.y;
+
 	std::pair<int, Vector2> t;
 	t.first = 0;
 	t.second = tex;
@@ -477,7 +513,7 @@ void ViewingModel::CorrespondTexCoord
 	double minStartDist = 999999;
 	double minEndDist   = 999999;
 
-	IndexedMesh * im = mLSCM->mesh_.get();
+	IndexedMesh * im = mLSCM->mMesh.get();
 
 //	REP(mesh,mMesh.size()){
 	cv::Point3d meshVertex;
@@ -519,6 +555,7 @@ void ViewingModel::CorrespondTexCoord
 		  p1.z = objZ;
 		  ind1 = im->mVertices[loopVer].id;
 
+		  //視点を選択したメッシュとする
 		  mSelectedMesh.first = ind1;
 		}
 
@@ -538,20 +575,20 @@ void ViewingModel::CorrespondTexCoord
 //	}
   //cout << "Strokes' indices : " << ind1 << "--" << ind2 << endl;
 
-	if(!mLSCM->mesh_->mTexParts.empty()){
-		cout << "harmonic value=" << mLSCM->mesh_->mTexParts[ mSelectedMesh.first ] << endl;
-		double hVal = mLSCM->mesh_->mTexParts[ mSelectedMesh.first ]>=0.5? 0.5 : 0;
+	if(!mLSCM->mMesh->mTexParts.empty()){
+//		cout << "harmonic value=" << mLSCM->mesh_->mTexParts[ mSelectedMesh.first ] << endl;
+		double hVal = mLSCM->mMesh->mTexParts[ mSelectedMesh.first ]>=0.5? 0.5 : 0;
 		REP(loopVer,im->mVertices.size()){
 			if(hVal)
 			{
-				if( mLSCM->mesh_->mTexParts[loopVer] >= 0.5)
+				if( mLSCM->mMesh->mTexParts[loopVer] >= 0.5)
 				 {
 					SetSelectedMeshData (loopVer);
 				 }
 			}
 			else
 			{
-				if( mLSCM->mesh_->mTexParts[loopVer] < 0.5)
+				if( mLSCM->mMesh->mTexParts[loopVer] < 0.5)
 				 {
 					SetSelectedMeshData (loopVer);
 				 }
@@ -568,7 +605,7 @@ void ViewingModel::RenewMeshDataConstruct( const int & separateNumber)
 //	REP(nMeshes, mLSCM.size()){
 //
 //	}
-	mLSCM->mesh_->mTexParts.clear();
+	mLSCM->mMesh->mTexParts.clear();
 
 	int num = GetMeshSize();
 	int sumIndices = 0;
@@ -576,7 +613,7 @@ void ViewingModel::RenewMeshDataConstruct( const int & separateNumber)
 		int nIndices = GetMeshIndicesSum(loop);
 		for(int loopv=0; loopv<nIndices; loopv++){
 			double decomValue = static_cast<double>(mHarmonicValue[mMesh[loop].ind[loopv]]);
-			mLSCM->mesh_->mTexParts.push_back(decomValue);
+			mLSCM->mMesh->mTexParts.push_back(decomValue);
 
 //			// a texture coord is changed in the case of another part
 //			if(decomValue <= 0.5 ){
@@ -605,7 +642,7 @@ void ViewingModel::ConvertDataStructure()
 		int nFaces = GetMeshIndicesSum(loop)/3;
 		for(int loopv=0; loopv<nFaces; loopv++){
 //			mLSCM[0]->mesh_->begin_facet();
-			mLSCM->mesh_->begin_facet();
+			mLSCM->mMesh->begin_facet();
 			REP(id,3){
 				Vector3 vertex;
 				vertex.x = mMesh[loop].vertex[loopv*9 + id*3 + 0];
@@ -615,25 +652,25 @@ void ViewingModel::ConvertDataStructure()
 				//set vertex value
 //				mLSCM->mesh_->add_vertex(vertex, Vector2(0,0));
 //				mLSCM[0]->mesh_->add_vertex(vertex, Vector2(0,0));
-				mLSCM->mesh_->add_vertex(vertex, Vector2(0,0));
+				mLSCM->mMesh->add_vertex(vertex, Vector2(0,0));
 
 				//set index corresponding to the vertex
-				mLSCM->mesh_->add_vertex_to_facet(sumIndices + loopv*3 + id);
+				mLSCM->mMesh->add_vertex_to_facet(sumIndices + loopv*3 + id);
 //				mLSCM[0]->mesh_->add_vertex_to_facet(sumIndices + loopv*3 + id);
 //				cout << sumIndices + loopv*3 + id << endl;
 
-				mLSCM->mesh_->mTexParts.push_back(0.0);
+				mLSCM->mMesh->mTexParts.push_back(0.0);
 			}
 //			mLSCM[0]->mesh_->end_facet();
-			mLSCM->mesh_->end_facet();
+			mLSCM->mMesh->end_facet();
 		}
 		sumIndices += nFaces*3;
 	}
 
 //	std::cout << "Converted : " << mLSCM[0]->mesh_->vertex.size() << " vertices and "
 //	<< mLSCM[0]->mesh_->facet.size() << " facets" << std::endl ;
-	std::cout << "Converted : " << mLSCM->mesh_->mVertices.size() << " vertices and "
-	<< mLSCM->mesh_->mFaces.size() << " facets" << std::endl ;
+	std::cout << "Converted : " << mLSCM->mMesh->mVertices.size() << " vertices and "
+	<< mLSCM->mMesh->mFaces.size() << " facets" << std::endl ;
 
 	mIsConvert = true;
 }
@@ -651,8 +688,55 @@ void ViewingModel::QueryVertex(const int & outer_loop, const int & mesh_index, G
   REP(id,3){
     vertex[id] = static_cast<GLdouble>(mMesh[outer_loop].vertex[mesh_index*3 + id]);
   }
-  //  printf("%lf %lf %lf\n",vertex[0],vertex[1],vertex[2]);
 }
+
+void  ViewingModel::QueryAmbient(const int & outer_loop, const int & mesh_index, GLfloat  * ambient)
+{
+	int ambientIndex = mMesh[outer_loop].materials[mesh_index];
+	if (ambientIndex >= 0 && ambientIndex < static_cast<int>(mMesh[0].ambient.size() )){
+//		cout << ambientIndex << endl;
+		ambient[0] = static_cast<GLfloat>(mMesh[0].ambient[ambientIndex].x);
+		ambient[1] = static_cast<GLfloat>(mMesh[0].ambient[ambientIndex].y);
+		ambient[2] = static_cast<GLfloat>(mMesh[0].ambient[ambientIndex].z);
+		ambient[3] = .0;
+	}
+	else{
+		REP(i,3) ambient[i] = 1.0f;
+	}
+	ambient[3] = .0;
+}
+
+void  ViewingModel::QueryDiffuse(const int & outer_loop, const int & mesh_index, GLfloat  * diffuse)
+{
+	int diffuseIndex = mMesh[outer_loop].materials[mesh_index];
+	if (diffuseIndex >= 0 && diffuseIndex < static_cast<int>(mMesh[0].diffuse.size() )){
+//		cout << mMesh[outer_loop].diffuse.size() << endl;
+		diffuse[0] = static_cast<GLfloat>(mMesh[0].diffuse[diffuseIndex].x);
+		diffuse[1] = static_cast<GLfloat>(mMesh[0].diffuse[diffuseIndex].y);
+		diffuse[2] = static_cast<GLfloat>(mMesh[0].diffuse[diffuseIndex].z);
+	}
+	else{
+		REP(i,3) diffuse[i] = 1.0f;
+	}
+	diffuse[3] = .0;
+}
+
+void  ViewingModel::QuerySpecular(const int & outer_loop, const int & mesh_index, GLfloat  * specular)
+{
+	int specularIndex = mMesh[outer_loop].materials[mesh_index];
+	if (specularIndex >= 0 && specularIndex < static_cast<int>(mMesh[0].specular.size() )){
+//		cout << mMesh[outer_loop].specular.size() << endl;
+		specular[0] = static_cast<GLfloat>(mMesh[0].specular[specularIndex].x);
+		specular[1] = static_cast<GLfloat>(mMesh[0].specular[specularIndex].y);
+		specular[2] = static_cast<GLfloat>(mMesh[0].specular[specularIndex].z);
+		specular[3] = .0;
+	}
+	else{
+		REP(i,3) specular[i] = 0.5f;
+	}
+	specular[3] = .0;
+}
+
 
 double ViewingModel::QueryVertexColor(const int & outer_loop, const int & mesh_index) const
 {
@@ -726,7 +810,7 @@ bool ViewingModel::RunLSCM(void)
  */
 ViewingModel::ViewingModel(char * name)
   :mSumOfVertices(0), mSumOfIndices(0), mScales(5.0), mIsConvert(false), mIsLoadMatrix(false)
-, mHasTexture(false)
+, mHasTexture(false), mMeshSelected(false)
 {
   mModelname = name;
   REP(i,3) mAngles[i] = 0.0;

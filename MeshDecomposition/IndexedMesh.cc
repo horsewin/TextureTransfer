@@ -1,13 +1,27 @@
-// IndexedMesh.cc //
+/*
+ * IndexedMesh.cc
+ *
+ *  Created on: 2012/05/22
+ *      Author: umakatsu
+ */
 
+//-------------------------------------------------------------------
+// Includes
+//-------------------------------------------------------------------
 #include "IndexedMesh.h"
 #include <iostream>
 #include <fstream>
 #include <sstream>
 #include <cassert>
 
+//---------------------------------------------------------------------------
+// Constant/Define
+//---------------------------------------------------------------------------
+//#define OUTPUT_TEXCOORDS 0
 
-// I/O
+//---------------------------------------------------------------------------
+// Global
+//---------------------------------------------------------------------------
 std::ostream& operator<<(std::ostream& out, const Vector2& v) {
     return out << v.x << " " << v.y ;
 }
@@ -24,6 +38,9 @@ std::istream& operator>>(std::istream& in, Vector3& v) {
     return in >> v.x >> v.y >> v.z ;
 }
 
+//---------------------------------------------------------------------------
+// Code
+//---------------------------------------------------------------------------
 IndexedMesh::IndexedMesh() 
 : mInFacet(false) 
 { 
@@ -56,9 +73,10 @@ void IndexedMesh::FindTextureMax()
     if( tmp1.y > mTexMax.y) mTexMax.y = tmp1.y;
   }
 
+#ifdef OUTPUT_TEXCOORDS
   std::cout << mTexMin.x << " " << mTexMin.y << std::endl;
   std::cout << mTexMax.x << " " << mTexMax.y << std::endl;
-
+#endif
 }
   
 Vertex* IndexedMesh::add_vertex() {

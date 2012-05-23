@@ -37,7 +37,7 @@ class IndexedMesh
   Vector2 mTexMax, mTexMin;
 
   std::vector<Vector2> mTextureCoords;
-  std::vector<double> mTexParts;
+  std::vector<double> mTexParts;			//for reserving harmonic field value. This vector size is the same as mVertices vector size
   std::vector<int> mTextureFaces;
   
 };

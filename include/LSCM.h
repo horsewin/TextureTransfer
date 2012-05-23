@@ -40,8 +40,7 @@ class LSCM
   void project();
 
  public:
-  boost::shared_ptr<IndexedMesh> mesh_;
-  //IndexedMesh * mesh_;
+  boost::shared_ptr<IndexedMesh> mMesh;
 };
 
 #endif
