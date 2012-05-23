@@ -385,11 +385,11 @@ bool ViewingModel::LoadMatrix( void )
   SparseMatrix<double> tmp_laplacian(mSumOfVertices,mSumOfVertices);
   //  SparseMatrix<double> sparse_laplacian_t(sum_of_vertex,sum_of_vertex);
   tmp_laplacian.reserve(mSumOfVertices*5);
-  REP(i,mSumOfVertices){
-    //    cout << i << endl;
+  REP(i,mSumOfVertices)
+  {
     REP(j,mSumOfVertices){
       if(mat_laplacian(i,j) != 0 ){
-	tmp_laplacian.insert(i,j) = mat_laplacian(i,j);
+    	  tmp_laplacian.insert(i,j) = mat_laplacian(i,j);
       }
     }
   }
@@ -660,6 +660,8 @@ void ViewingModel::ConvertDataStructure()
 //				cout << sumIndices + loopv*3 + id << endl;
 
 				mLSCM->mMesh->mTexParts.push_back(0.0);
+
+				mLSCM->mMesh->mTextureNumber.push_back(0);
 			}
 //			mLSCM[0]->mesh_->end_facet();
 			mLSCM->mMesh->end_facet();
@@ -803,6 +805,16 @@ bool ViewingModel::RunLSCM(void)
   //  lscm->mesh_->save("test.obj");
   
   return true;
+}
+
+bool ViewingModel::LoadTexture(const char * filename)
+{
+	::ImageType TextureRGB = (img_load(filename));
+	Texture * tmpTexture = new Texture( static_cast<const ::ImageType> (TextureRGB));
+
+	mTexture.push_back(tmpTexture);
+
+	return true;
 }
 
 /*

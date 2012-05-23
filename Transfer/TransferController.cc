@@ -16,7 +16,7 @@
 //---------------------------------------------------------------------------
 // Constant/Define
 //---------------------------------------------------------------------------
-#define VISUALIZE 1
+#define VISUALIZE 0
 //---------------------------------------------------------------------------
 // Global
 //---------------------------------------------------------------------------
@@ -165,6 +165,7 @@ void TransferController::AcquireMatching()
 	IplImage * i2 = cvLoadImage("mesh2.bmp", 1);
 
 	mls.MLSWarpImage(i1, &input, dst, &output);
+	cvSaveImage("warping1.bmp", dst);
 #if VISUALIZE == 1
 //	REP(i,mls.m_dst.size()){
 //		cvCircle(dst, mls.m_dst[i], 3, cv::Scalar(0,0,255), 3);

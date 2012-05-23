@@ -8,12 +8,17 @@
 #include "OpenGL.h"
 #include "OpenCV.h"
 
+#include <cvd/image_io.h>
+
 #include "main.h"
 #include "ViewingModel.h"
 #include "IndexedMesh.h"
 #include "LSCM.h"
 #include "Bitmap.h"
 #include "TransferController.h"
+
+#include "Modelling/Texture.h"
+
 
 //---------------------------------------------------------------------------
 // Constant/Define
@@ -22,7 +27,7 @@
 #define TEXTURE_TRIANGLES 1
 #define VISUALIZE 0 //OpenCVのウィンドウ上にテクスチャ展開の点群を表示する
 #define FEEDBACK_VISUALIZE 0 //OpenCVから計算してきた輪郭情報をGL上に持っていくときの輪郭情報を表示する
-
+#define DISPLAY_TEXTURE  1
 const int SEPARATION = 5;
 const static GLfloat lit_amb[4]={0.4f, 0.4f, 0.4f,1.0};	/* 環境光の強さ */
 const static GLfloat lit_dif[4]={1.0, 1.0, 1.0, 1.0};	/* 拡散光の強さ */
@@ -58,7 +63,6 @@ ViewingModel * models[2];
 TransferController controller;
 short manupulation;
 
-void SetMatrixParam( );
 void DrawModelMonitor(int x, int y, int w, int h, ViewingModel * model, bool isStroke, const int & separationW);
 void DrawTextureMonitor(int x, int y, int w, int h, ViewingModel * model, const int & seprationW);
 void PointsDisplay();
@@ -410,17 +414,14 @@ void DrawModelMonitor(int x, int y, int w, int h, ViewingModel * model, bool isS
 //  glVertex3d(clickPoint[1].x, clickPoint[1].y, clickPoint[1].z);
 //  glEnd();
 
-  //Rendering a model
+#if DISPLAY_TEXTURE == 0
+  Rendering a model
   glLineWidth(1);
   glColor3f(1.0f, 0.0f, 0.0f);
 
   int nMeshs = model->GetMeshSize();
-//  int nMaterials =
-//  REP(material, )
-//  //テクスチャセット
-//  texturesList[loop]->bind();
 
-  glEnable(GL_LIGHT0);
+    glEnable(GL_LIGHT0);
   glEnable(GL_LIGHTING);
   glEnable(GL_COLOR_MATERIAL);
 
@@ -437,13 +438,13 @@ void DrawModelMonitor(int x, int y, int w, int h, ViewingModel * model, bool isS
       ColorSetting( model->QueryVertexColor(loop,id) );
       model->QueryNormal(loop, id, normal);
       model->QueryVertex(loop, id, vertex);
-      model->QueryAmbient(loop, id, ambient);
-      model->QueryDiffuse(loop, id, diffuse);
-      model->QuerySpecular(loop, id, specular);
+//      model->QueryAmbient(loop, id, ambient);
+//      model->QueryDiffuse(loop, id, diffuse);
+//      model->QuerySpecular(loop, id, specular);
+//		glMaterialfv(GL_FRONT_AND_BACK, GL_AMBIENT, ambient);
+//		glMaterialfv(GL_FRONT_AND_BACK, GL_DIFFUSE, diffuse);
+//		glMaterialfv(GL_FRONT_AND_BACK, GL_SPECULAR, specular);
 
-		glMaterialfv(GL_FRONT_AND_BACK, GL_AMBIENT, ambient);
-		glMaterialfv(GL_FRONT_AND_BACK, GL_DIFFUSE, diffuse);
-		glMaterialfv(GL_FRONT_AND_BACK, GL_SPECULAR, specular);
 //      glColor3f(diffuse[0]*lit_dif[0], diffuse[1]*lit_dif[1], diffuse[2]*lit_dif[2]);
 //      glColor3f(diffuse[0], diffuse[1], diffuse[2]);
       glNormal3dv(normal);
@@ -451,25 +452,45 @@ void DrawModelMonitor(int x, int y, int w, int h, ViewingModel * model, bool isS
     }
     glEnd();
   }
+#endif
 
-  glDisable(GL_COLOR_MATERIAL);
-  glDisable(GL_LIGHTING);
-  glDisable(GL_LIGHT0);
+//  glDisable(GL_COLOR_MATERIAL);
+//  glDisable(GL_LIGHTING);
+//  glDisable(GL_LIGHT0);
 
-//	IndexedMesh * im = model->mLSCM->mesh_;
-//
-//	glBegin(GL_TRIANGLES);
-//	for(unsigned int loopVer=0; loopVer<im->vertex.size(); loopVer++){
-//		GLdouble normal[3];
-//		GLdouble vertex[3];
-//		cv::Point3d meshVertex;
-//		meshVertex.x = im->vertex[loopVer].point.x;
-//		meshVertex.y = im->vertex[loopVer].point.y;
-//		meshVertex.z = im->vertex[loopVer].point.z;
-//		glVertex3d(meshVertex.x, meshVertex.y, meshVertex.z);
-//	}
-//	glEnd();
-  //get each transform matrix
+#if DISPLAY_TEXTURE == 1
+	IndexedMesh * tmpMesh = model->mLSCM->mMesh.get();
+//	cout << model->mTexture.size() << endl;
+	REP(texNumber, model->mTexture.size()){
+		//テクスチャセット
+		model->mTexture[texNumber]->bind();
+
+		//for warping texture mapping
+		double ratio_x = (W_WIDTH*0.5 -  1) / (tmpMesh->mTexMax.x - tmpMesh->mTexMin.x);
+		double ratio_y = (W_HEIGHT*0.5 - 1) / (tmpMesh->mTexMax.y - tmpMesh->mTexMin.y);//
+
+		glBegin(GL_TRIANGLES);
+		for(unsigned int loopVer=0; loopVer<tmpMesh->mVertices.size(); loopVer++)
+		{
+			if( tmpMesh->mTextureNumber[loopVer] == texNumber ){
+				GLfloat texcos[2];
+				texcos[0] = (tmpMesh->mTextureCoords[loopVer].x - tmpMesh->mTexMin.x) * ratio_x;
+				texcos[1] = (W_HEIGHT/2 - (tmpMesh->mTextureCoords[loopVer].y - tmpMesh->mTexMin.y) * ratio_y) - 1;
+
+				GLdouble vertex[3];
+				vertex[0] = tmpMesh->mVertices[loopVer].point.x;
+				vertex[1] = tmpMesh->mVertices[loopVer].point.y;
+				vertex[2] = tmpMesh->mVertices[loopVer].point.z;
+				glColor3f(1.0f, 1.0f, 1.0f);
+				glTexCoord2fv(texcos);
+				glVertex3dv(vertex);
+			}
+		}
+		glEnd();
+		model->mTexture[texNumber]->unbind();
+	}
+#endif
+	//get each transform matrix
   glPopMatrix();
 
   // draw drag line
@@ -636,22 +657,6 @@ void DrawTextureMonitor(int x, int y, int w, int h, ViewingModel * model, const 
   glEnable(GL_DEPTH_TEST);
 }
 
-void SetMatrixParam( )
-{
-//	glPushMatrix();
-//
-//	glRotated(models[manupulation-1]->mAngles[0], 1.0, 0.0, 0.0);  //
-//	glRotated(models[manupulation-1]->mAngles[1], 0.0, 1.0, 0.0);  //
-//	glRotated(models[manupulation-1]->mAngles[2], 0.0, 0.0, 1.0);  //
-//	glScalef(models[manupulation-1]->mScales,models[manupulation-1]->mScales,models[manupulation-1]->mScales);
-//
-//	glRotatef(90,-1,0,0);
-//	glGetIntegerv(GL_VIEWPORT, viewport);
-//	glGetDoublev(GL_MODELVIEW_MATRIX, modelview);	//幾何変換（モデルビュー）行列
-//	glGetDoublev(GL_PROJECTION_MATRIX, projection);	//投影変換行列
-//	glPopMatrix();
-}
-
 void PointsDisplay()
 {
 	IndexedMesh * tmpMesh = models[manupulation-1]->mLSCM->mMesh.get();
@@ -717,12 +722,21 @@ void TexturePaste(bool color)
 //				printf(" Matching1(%d,%d):(%d,%d)\n\n",(int)controller.mMatchingPoints[id].second.x, (int)controller.mMatchingPoints[id].second.y, controller.mMeshes[1].at(idModel1).second.x, controller.mMeshes[1].at(idModel1).second.y);
 //				printf("(%d , %d) : (%lf -> %lf)\n", idModel1, idModel0, models[1]->mLSCM->mMesh->mTexParts[idModel1], models[0]->mLSCM->mMesh->mTexParts[idModel0]);
 
-			models[0]->mLSCM->mMesh->mTexParts[idModel0] = models[1]->mLSCM->mMesh->mTexParts[idModel1];
+//			models[1]->mLSCM->mMesh->mTexParts[idModel1] = models[0]->mLSCM->mMesh->mTexParts[idModel0];
 #if FEEDBACK_VISUALIZE == 1
 			cvCircle( src, cvPoint((int)controller.mMatchingPoints[id].first.x, (int)controller.mMatchingPoints[id].first.y), 2, CV_RGB( 255, 255, 0 ), CV_FILLED );
 #endif
 
+//			//テクスチャ画像番号を更新
+//			models[1]->mLSCM->mMesh->mTextureNumber[idModel1] = 1;//models[1]->mTexture.size();
+
 		}
+
+		::ImageType TextureRGB = (CVD::img_load("warping1.bmp"));
+		Texture * tmpTexture = new Texture( static_cast<const ::ImageType> (TextureRGB));
+
+		models[1]->mTexture.push_back(tmpTexture);
+
 		cout << "Texture Transfer DONE!! 1 -> 0" << endl;
 
 		//reset selected mesh
@@ -759,14 +773,16 @@ void Init()
 
   //load 3ds model
   models[0] = new ViewingModel("Model3DS/DORA.3ds");
-  models[1] = new ViewingModel("Model3DS/DORA.3ds");
+  models[1] = new ViewingModel("Model3DS/HatuneMiku.3ds");
   manupulation = 1;
 
+  models[0]->LoadTexture("texture1.bmp");
   models[0]->ConvertDataStructure();
   models[0]->mLSCM->run("CG","");
   models[0]->mLSCM->mMesh->save("Model3DS/test2.obj");
   models[0]->mLSCM->mMesh->FindTextureMax();
 
+  models[1]->LoadTexture("warping1.bmp");
   models[1]->ConvertDataStructure();
   models[1]->mLSCM->run("CG","");
   models[1]->mLSCM->mMesh->save("Model3DS/voxel3.obj");

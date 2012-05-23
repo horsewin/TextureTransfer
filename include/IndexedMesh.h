@@ -40,6 +40,8 @@ class IndexedMesh
   std::vector<double> mTexParts;			//for reserving harmonic field value. This vector size is the same as mVertices vector size
   std::vector<int> mTextureFaces;
   
+  std::vector<int> mTextureNumber; 		//to indicate corresponding texture image number. This vector size is the same as mVertices vector size
+
 };
 
 #endif

@@ -23,8 +23,8 @@
 #include <cstring>
 
 class LSCM;
-class Texture;
 class Lib3dsFile;
+class Texture;
 
 //メッシュ構造体
 struct Mesh
@@ -62,6 +62,8 @@ class ViewingModel{
   ~ViewingModel();
 
   bool RunLSCM();
+
+  bool LoadTexture(const char * filename);
   void ConvertDataStructure();
   bool CheckFittingVertices(GLint *viewport, GLdouble *modelview, GLdouble *projection, cv::Point2d start_point, cv::Point2d end_point);
   void UpdateMatrix();
@@ -103,10 +105,13 @@ class ViewingModel{
  public:
 //  std::vector<boost::shared_ptr<LSCM>> mLSCM;
   boost::shared_ptr<LSCM> mLSCM;
+
+  std::vector<Texture*> mTexture;
+
   float mScales;
   double mAngles[3];
 
-  std::deque<Texture *> texturesList; // A set of Textures 2011.6.7
+//  std::deque<Texture *> texturesList; // A set of Textures 2011.6.7
   std::pair<int,Mesh> mSelectedMesh; //first : an index for the matrix having harmonic field(mTexparts), second: a set of meshes
 
  private:
@@ -126,6 +131,7 @@ class ViewingModel{
   bool mIsLoadMatrix;
   bool mHasTexture;
   bool mMeshSelected;
+
 };
 
 #endif

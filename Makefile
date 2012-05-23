@@ -4,7 +4,8 @@ CC = g++
 
 #Compile and Link Flag
 #OpenCV & OpenGL
-OPENCVLIB = -lhighgui -lcvaux -lcv -lml -lcxcore
+#OPENCVLIB = -lhighgui -lcvaux -lcv -lml -lcxcore
+OPENCVLIB = -L/usr/local/lib -lopencv_core -lopencv_imgproc -lopencv_highgui -lopencv_ml -lopencv_video -lopencv_features2d -lopencv_calib3d -lopencv_objdetect -lopencv_contrib -lopencv_legacy -lopencv_flann -lopencv_gpu
 OPENGLLIB = -lGL -lGLU -lglut
 
 #Open Scene Graph
@@ -30,17 +31,24 @@ EIGENLIB = -lcholmod -lumfpack -lamd -lcamd -lccolamd  -lcolamd -lcxsparse -lbla
 EIGENINC = -I/home/umakatsu/desktop/Lab/M1/mesh_decomp/CHOLMOD/Include -I/home/umakatsu/desktop/Lab/M1/mesh_decomp/eigen-eigen-3.0.3/unsupported -I/home/umakatsu/desktop/Lab/M1/mesh_decomp/eigen-eigen-3.0.3
 
 ######## Object file #########
-SUBDIRS = ./MeshDecomposition ./Modelling
+SUBDIRS = ./MeshDecomposition ./Modelling ./Transfer
 VPATH = $(SUBDIRS)
 
-Models=Obj/Model3ds.o\
-	Obj/Texture.o
+Models = Obj/Model3ds.o\
+		  Obj/Texture.o
+	
+Decomposition = 	Obj/ViewingModel.o\
+					Obj/LSCM.o\
+					Obj/IndexedMesh.o
+
+Transfer = Obj/TransferController.o\
+	Obj/MLS.o
 	
 Object = Obj/main.o\
-	Obj/ViewingModel.o\
+	$(Decomposition)\
+	Obj/Bitmap.o\
 	$(Models)\
-	Obj/LSCM.o\
-	Obj/IndexedMesh.o
+	$(Transfer)
 	
 all: TextureTransfer
 TextureTransfer: $(Object)
