@@ -58,14 +58,14 @@ IndexedMesh::~IndexedMesh()
 
 void IndexedMesh::FindTextureMax()
 {
-  unsigned int size = mTextureFaces.size();
+  uint size = mTextureFaces.size();
   
   mTexMax.x = -9999;
   mTexMax.y = -9999;
   mTexMin.x = 9999;
   mTexMin.y = 9999;
   
-  for(int i=0; i<size; i++){
+  for(uint i=0; i<size; i++){
     Vector2 tmp1 = mTextureCoords[ mTextureFaces.at(i) - 1];
     if( tmp1.x < mTexMin.x) mTexMin.x = tmp1.x;
     if( tmp1.y < mTexMin.y) mTexMin.y = tmp1.y;

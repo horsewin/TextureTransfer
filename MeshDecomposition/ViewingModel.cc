@@ -742,7 +742,7 @@ void  ViewingModel::QuerySpecular(const int & outer_loop, const int & mesh_index
 
 double ViewingModel::QueryVertexColor(const int & outer_loop, const int & mesh_index) const
 {
-	if(mMesh.size() <= outer_loop)
+	if(static_cast<int>(mMesh.size()) <= outer_loop)
 		cout << "MeshSize:" << mMesh.size() << " OuterLoop:" << outer_loop << endl;
 //	if(mMesh[outer_loop].ind.size() <= mesh_index )
 //		cout << "IndSize:" << mMesh[outer_loop].ind.size() << " MeshIndex:" << mesh_index << endl;
@@ -800,7 +800,7 @@ bool ViewingModel::RunLSCM(void)
     return false;
   }
 
-  const char * solver = "CG";
+//  const char * solver = "CG";
 //  mLSCM->run(solver, " ");
   //  lscm->mesh_->save("test.obj");
   
@@ -820,11 +820,11 @@ bool ViewingModel::LoadTexture(const char * filename)
 /*
  * @name : model name for loading
  */
-ViewingModel::ViewingModel(char * name)
+ViewingModel::ViewingModel(const char * name)
   :mSumOfVertices(0), mSumOfIndices(0), mScales(5.0), mIsConvert(false), mIsLoadMatrix(false)
-, mHasTexture(false), mMeshSelected(false)
+, mHasTexture(false), mMeshSelected(false), mModelname(name)
 {
-  mModelname = name;
+//  mModelname = name;
   REP(i,3) mAngles[i] = 0.0;
 //  mLSCM.clear();
 //  boost::shared_ptr<LSCM> lscm = boost::shared_ptr<LSCM>(new LSCM());

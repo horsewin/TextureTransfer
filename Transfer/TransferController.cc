@@ -162,7 +162,6 @@ void TransferController::AcquireMatching()
 	}
 
 	IplImage * i1 = cvLoadImage("mesh1.bmp", 1);
-	IplImage * i2 = cvLoadImage("mesh2.bmp", 1);
 
 	mls.MLSWarpImage(i1, &input, dst, &output);
 	cvSaveImage("warping1.bmp", dst);

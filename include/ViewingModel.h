@@ -58,7 +58,7 @@ struct Mesh
 //-------------------------------------------------------------------
 class ViewingModel{
  public:
-  ViewingModel(char * name = NULL);
+  ViewingModel(const char * name = NULL);
   ~ViewingModel();
 
   bool RunLSCM();

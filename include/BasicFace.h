@@ -12,6 +12,8 @@
 //-------------------------------------------------------------------
 // Class definition
 //-------------------------------------------------------------------
+typedef unsigned int uint;
+
 class Vector2 {
 public:
     Vector2(double x_in, double y_in) : x(x_in), y(y_in) { }
