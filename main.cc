@@ -28,6 +28,7 @@
 #define VISUALIZE 0 //OpenCVのウィンドウ上にテクスチャ展開の点群を表示する
 #define FEEDBACK_VISUALIZE 0 //OpenCVから計算してきた輪郭情報をGL上に持っていくときの輪郭情報を表示する
 #define DISPLAY_TEXTURE  1
+
 const int SEPARATION = 5;
 const static GLfloat lit_amb[4]={0.4f, 0.4f, 0.4f,1.0};	/* 環境光の強さ */
 const static GLfloat lit_dif[4]={1.0, 1.0, 1.0, 1.0};	/* 拡散光の強さ */
@@ -87,7 +88,7 @@ void DrawString(const char *str,void *font,float x,float y,float z)
 void DrawController()
 {
   glPushAttrib(GL_CURRENT_BIT|GL_DEPTH_BUFFER_BIT); // retrieve color and Z buffer
-  glColor3d(1,0,1);
+  glColor3d(0,0,0);
   char str[50];
   switch(controllObject){
   	  case MANUPLATE:
@@ -414,16 +415,16 @@ void DrawModelMonitor(int x, int y, int w, int h, ViewingModel * model, bool isS
 //  glVertex3d(clickPoint[1].x, clickPoint[1].y, clickPoint[1].z);
 //  glEnd();
 
+	glEnable(GL_LIGHT0);
+	glEnable(GL_LIGHTING);
+	glEnable(GL_COLOR_MATERIAL);
+
 #if DISPLAY_TEXTURE == 0
-  Rendering a model
+//  Rendering a model
   glLineWidth(1);
   glColor3f(1.0f, 0.0f, 0.0f);
 
   int nMeshs = model->GetMeshSize();
-
-    glEnable(GL_LIGHT0);
-  glEnable(GL_LIGHTING);
-  glEnable(GL_COLOR_MATERIAL);
 
   REP(loop,nMeshs){
 	GLdouble normal[3];
@@ -438,12 +439,12 @@ void DrawModelMonitor(int x, int y, int w, int h, ViewingModel * model, bool isS
       ColorSetting( model->QueryVertexColor(loop,id) );
       model->QueryNormal(loop, id, normal);
       model->QueryVertex(loop, id, vertex);
-//      model->QueryAmbient(loop, id, ambient);
-//      model->QueryDiffuse(loop, id, diffuse);
-//      model->QuerySpecular(loop, id, specular);
-//		glMaterialfv(GL_FRONT_AND_BACK, GL_AMBIENT, ambient);
-//		glMaterialfv(GL_FRONT_AND_BACK, GL_DIFFUSE, diffuse);
-//		glMaterialfv(GL_FRONT_AND_BACK, GL_SPECULAR, specular);
+      model->QueryAmbient(loop, id, ambient);
+      model->QueryDiffuse(loop, id, diffuse);
+      model->QuerySpecular(loop, id, specular);
+		glMaterialfv(GL_FRONT_AND_BACK, GL_AMBIENT, ambient);
+		glMaterialfv(GL_FRONT_AND_BACK, GL_DIFFUSE, diffuse);
+		glMaterialfv(GL_FRONT_AND_BACK, GL_SPECULAR, specular);
 
 //      glColor3f(diffuse[0]*lit_dif[0], diffuse[1]*lit_dif[1], diffuse[2]*lit_dif[2]);
 //      glColor3f(diffuse[0], diffuse[1], diffuse[2]);
@@ -461,6 +462,7 @@ void DrawModelMonitor(int x, int y, int w, int h, ViewingModel * model, bool isS
 #if DISPLAY_TEXTURE == 1
 	IndexedMesh * tmpMesh = model->mLSCM->mMesh.get();
 //	cout << model->mTexture.size() << endl;
+	int isTriangles = 0;
 	REP(texNumber, model->mTexture.size()){
 		//テクスチャセット
 		model->mTexture[texNumber]->bind();
@@ -472,7 +474,11 @@ void DrawModelMonitor(int x, int y, int w, int h, ViewingModel * model, bool isS
 		glBegin(GL_TRIANGLES);
 		for(unsigned int loopVer=0; loopVer<tmpMesh->mVertices.size(); loopVer++)
 		{
-			if( tmpMesh->mTextureNumber[loopVer] == texNumber ){
+			glMaterialfv(GL_FRONT_AND_BACK, GL_AMBIENT, lit_amb);
+			glMaterialfv(GL_FRONT_AND_BACK, GL_DIFFUSE, lit_dif);
+			glMaterialfv(GL_FRONT_AND_BACK, GL_SPECULAR, lit_spc);
+
+			if( tmpMesh->mTextureNumber[loopVer] == texNumber || isTriangles > 0){
 				GLfloat texcos[2];
 				texcos[0] = (tmpMesh->mTextureCoords[loopVer].x - tmpMesh->mTexMin.x) * ratio_x;
 				texcos[1] = (W_HEIGHT/2 - (tmpMesh->mTextureCoords[loopVer].y - tmpMesh->mTexMin.y) * ratio_y) - 1;
@@ -484,7 +490,10 @@ void DrawModelMonitor(int x, int y, int w, int h, ViewingModel * model, bool isS
 				glColor3f(1.0f, 1.0f, 1.0f);
 				glTexCoord2fv(texcos);
 				glVertex3dv(vertex);
+
+				isTriangles++;
 			}
+			isTriangles %= 3;
 		}
 		glEnd();
 		model->mTexture[texNumber]->unbind();
@@ -523,6 +532,7 @@ void DrawModelMonitor(int x, int y, int w, int h, ViewingModel * model, bool isS
   }
   DrawController();
 
+  //display a sentence if a mesh in the model have been selected
   if(model->IsMeshSelected()){
 	  glPushAttrib(GL_CURRENT_BIT|GL_DEPTH_BUFFER_BIT); // retrieve color and Z buffer
 	  glColor3d(1,0,1);
@@ -688,12 +698,6 @@ void PointsDisplay()
 	}
 
 
-//	REP(i, meshes.size()){
-//#if VISUALIZE == 1
-//		cvCircle( src, meshes[i].second, 2, CV_RGB( 255, 255, 0 ), CV_FILLED );
-//#endif
-//		controller.SetHashmap( meshes[i].second.x, meshes[i].second.y, meshes[i].first, manupulation-1);
-//	}
 #if VISUALIZE == 1
 	cvNamedWindow(winName, 1);
 	cvShowImage( winName, src);
@@ -726,10 +730,11 @@ void TexturePaste(bool color)
 #if FEEDBACK_VISUALIZE == 1
 			cvCircle( src, cvPoint((int)controller.mMatchingPoints[id].first.x, (int)controller.mMatchingPoints[id].first.y), 2, CV_RGB( 255, 255, 0 ), CV_FILLED );
 #endif
+		}
 
-//			//テクスチャ画像番号を更新
-//			models[1]->mLSCM->mMesh->mTextureNumber[idModel1] = 1;//models[1]->mTexture.size();
-
+		REP(id, controller.mMeshes[1].size()){
+			//テクスチャ画像番号を更新
+			models[1]->mLSCM->mMesh->mTextureNumber[controller.mMeshes[1].at(id).first] = 1;//models[1]->mTexture.size();
 		}
 
 		::ImageType TextureRGB = (CVD::img_load("warping1.bmp"));
@@ -773,7 +778,7 @@ void Init()
 
   //load 3ds model
   models[0] = new ViewingModel("Model3DS/DORA.3ds");
-  models[1] = new ViewingModel("Model3DS/HatuneMiku.3ds");
+  models[1] = new ViewingModel("Model3DS/DORA.3ds");
   manupulation = 1;
 
   models[0]->LoadTexture("texture1.bmp");
@@ -782,7 +787,7 @@ void Init()
   models[0]->mLSCM->mMesh->save("Model3DS/test2.obj");
   models[0]->mLSCM->mMesh->FindTextureMax();
 
-  models[1]->LoadTexture("warping1.bmp");
+  models[1]->LoadTexture("texture2.bmp");
   models[1]->ConvertDataStructure();
   models[1]->mLSCM->run("CG","");
   models[1]->mLSCM->mMesh->save("Model3DS/voxel3.obj");
