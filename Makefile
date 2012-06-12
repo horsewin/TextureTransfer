@@ -5,7 +5,8 @@ CC = g++
 #Compile and Link Flag
 #OpenCV & OpenGL
 #OPENCVLIB = -lhighgui -lcvaux -lcv -lml -lcxcore
-OPENCVLIB = -L/usr/local/lib -lopencv_core -lopencv_imgproc -lopencv_highgui -lopencv_ml -lopencv_video -lopencv_features2d -lopencv_calib3d -lopencv_objdetect -lopencv_contrib -lopencv_legacy -lopencv_flann -lopencv_gpu
+#OPENCVLIB = -L/usr/local/lib -lopencv_core -lopencv_imgproc -lopencv_highgui -lopencv_ml -lopencv_video -lopencv_features2d -lopencv_calib3d -lopencv_objdetect -lopencv_contrib -lopencv_legacy -lopencv_flann -lopencv_gpu
+OPENCVLIB = -L/usr/local/lib -lhighgui -lcvaux -lcv -lml -lcxcore
 OPENGLLIB = -lGL -lGLU -lglut
 
 #Open Scene Graph

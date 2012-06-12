@@ -52,23 +52,23 @@ GLdouble modelview[SEPARATION][16];
 GLdouble projection[SEPARATION][16];
 
 //for debug
-Vector2 texPoint[2];
-Vector3 clickPoint[2];
+TextureTransfer::Vector2 texPoint[2];
+TextureTransfer::Vector3 clickPoint[2];
 
 void *font = GLUT_BITMAP_HELVETICA_18;
 std::vector<int *> point;
 
-ViewingModel * models[2];
-TransferController controller;
+TextureTransfer::ViewingModel * models[2];
+TextureTransfer::TransferController controller;
 short manupulation;
 
-void DrawModelMonitor(int x, int y, int w, int h, ViewingModel * model, bool isStroke, const int & separationW);
-void DrawTextureMonitor(int x, int y, int w, int h, ViewingModel * model, const int & seprationW);
+void DrawModelMonitor(int x, int y, int w, int h, TextureTransfer::ViewingModel * model, bool isStroke, const int & separationW);
+void DrawTextureMonitor(int x, int y, int w, int h, TextureTransfer::ViewingModel * model, const int & seprationW);
 void PointsDisplay();
 void TexturePaste(bool color = false);
 
 using namespace std;
-
+using namespace TextureTransfer;
 //---------------------------------------------------------------------------
 // Code
 //---------------------------------------------------------------------------
@@ -184,7 +184,23 @@ void keyboard(unsigned char key, int x, int y)
     case 'q': case '\033':
       exit(0);
       break;
-      
+
+    case 'w':
+    	models[manupulation-1]->mTrans[1] += 0.5f;
+    	break;
+
+    case 'x':
+    	models[manupulation-1]->mTrans[1] -= 0.5f;
+    	break;
+
+    case 'd':
+    	models[manupulation-1]->mTrans[0] += 0.5f;
+    	break;
+
+    case 'a':
+    	models[manupulation-1]->mTrans[0] -= 0.5f;
+    	break;
+
     case 'g':
       break;
 
@@ -226,6 +242,7 @@ void keyboard(unsigned char key, int x, int y)
 			controller.SetContourPoints();
 			controller.AcquireMatching();
 			TexturePaste(true);
+			models[1]->Save3DModel("NewModel");
 		}
     	break;
   }	
@@ -408,6 +425,7 @@ void DrawModelMonitor(int x, int y, int w, int h, ViewingModel * model, bool isS
   glRotated(model->mAngles[0], 1.0, 0.0, 0.0);  //
   glRotated(model->mAngles[1], 0.0, 1.0, 0.0);  //
   glRotated(model->mAngles[2], 0.0, 0.0, 1.0);  //
+  glTranslated(model->mTrans[0], model->mTrans[1], model->mTrans[2]);
   glScalef(model->mScales,model->mScales,model->mScales);
   glRotatef(90,-1,0,0);
 
@@ -641,7 +659,7 @@ void DrawTextureMonitor(int x, int y, int w, int h, ViewingModel * model, const 
 			Vector2 tmp3 = model->mSelectedMesh.second.mTextureCoords[i+2].second;
 
 			double value = model->mLSCM->mMesh->mTexParts[model->mSelectedMesh.second.index[i]];
-			ColorSetting(value);
+			ColorSetting(value, true);
 
 #if TEXTURE_TRIANGLES==0
 			glVertex2f(tmp1.x,tmp1.y);
@@ -690,6 +708,7 @@ void PointsDisplay()
 #endif
 
 	controller.mMeshes[manupulation-1].clear();
+	assert(input);
     for(unsigned int i=0; i<models[manupulation-1]->mSelectedMesh.second.mTextureCoords.size(); i++){
 		Vector2 tmp1 = models[manupulation-1]->mSelectedMesh.second.mTextureCoords[i].second;
 		cv::Point tmp;
@@ -752,7 +771,7 @@ void TexturePaste(bool color)
 
 		models[1]->mTexture.push_back(tmpTexture);
 
-		cout << "Texture Transfer DONE!! 1 -> 0" << endl;
+		cout << "Texture Transfer DONE!! Left -> Right" << endl;
 
 		//reset selected mesh
 		REP(i,2){
@@ -787,8 +806,8 @@ void Init()
 	glEnable(GL_COLOR_MATERIAL);
 
 	//load 3ds model
-	const char * model1Name = "Model3DS/DORA.3ds";
-	const char * model2Name = "Model3DS/DORA.3ds";
+	const char * model1Name = "Model3DS/Torus.3ds";
+	const char * model2Name = "Model3DS/HatuneMiku.3ds";
 	models[0] = new ViewingModel(model1Name);
 	models[1] = new ViewingModel(model2Name);
 	manupulation = 1;
@@ -799,7 +818,7 @@ void Init()
 	models[0]->mLSCM->mMesh->save("Model3DS/test2.obj");
 	models[0]->mLSCM->mMesh->FindTextureMax();
 
-	models[1]->LoadTexture("texture2.bmp");
+	models[1]->LoadTexture("Hatsune2.bmp");
 	models[1]->ConvertDataStructure();
 	models[1]->mLSCM->run("CG","");
 	models[1]->mLSCM->mMesh->save("Model3DS/voxel3.obj");

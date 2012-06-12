@@ -23,7 +23,8 @@
 
 using namespace TooN;
 
-class TiXmlElement;
+namespace TextureTransfer
+{
 
 typedef float Vector3D[3];  //for use with lib3ds
 
@@ -54,8 +55,6 @@ class Model3DS{
     ~Model3DS();
 
     bool Load( std::string sModelDir, std::string sFileName, TooN::Vector<3> v3Rotation );
-    void Save( TiXmlElement * modelsNode );
-    bool Load( TiXmlElement * modelsNode );
 
     void Draw();
 
@@ -118,5 +117,5 @@ class Model3DS{
 
     bool mbDelayedLoad;             // Is a delayed load pending?
 };
-
+}
 #endif

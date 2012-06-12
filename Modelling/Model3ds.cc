@@ -13,6 +13,9 @@ using namespace std;
 using namespace CVD;
 using namespace GVars3;
 
+namespace TextureTransfer
+{
+
 /**
  * Constructor
  */
@@ -692,89 +695,6 @@ void Model3DS::_DrawBoundingBox() {
 }
 
 /**
- * Save a model's state to disk
- * @param modelsNode the tinyXML element to append to
- */
-void Model3DS::Save(TiXmlElement * modelsNode) {
-	if (!modelsNode) {
-		return;
-	}
-//
-//	TiXmlElement * modelNode = new TiXmlElement("Model");
-//	modelsNode->LinkEndChild(modelNode);
-//
-//	modelNode->SetAttribute("name", msName);
-//	modelNode->SetAttribute("dir", msModelDir);
-//	modelNode->SetAttribute("file", msModelFile);
-//	modelNode->SetDoubleAttribute("scale", mdScale);
-//	modelNode->SetDoubleAttribute("scaleMult", mdScaleMult);
-//
-//	ostringstream os;
-//	string s;
-//
-//	os << mse3MfromW.ln();
-//	s = os.str();
-//	PruneWhiteSpace(s);
-//	modelNode->SetAttribute("pose", s);
-//
-//	os.str("");
-//	os << mse3ModelOffset.ln();
-//	s = os.str();
-//	PruneWhiteSpace(s);
-//	modelNode->SetAttribute("offset", s);
-
-}
-
-/**
- * Load a model's state from disk
- * @param modelsNode the TinyXML element to read from
- * @return success
- */
-bool Model3DS::Load(TiXmlElement * modelsNode) {
-	if (!modelsNode) {
-		return false;
-	}
-//
-//	//read the name
-//	msName = modelsNode->Attribute("name");
-//
-//	//read the file path
-//	msModelDir = modelsNode->Attribute("dir");
-//	if (msModelDir.empty()) {
-//		return false;
-//	}
-//
-//	// read the file name
-//	msModelFile = modelsNode->Attribute("file");
-//	if (msModelFile.empty()) {
-//		return false;
-//	}
-//
-//	//read the scale and its mulitplier
-//	modelsNode->QueryDoubleAttribute("scale", &mdScale);
-//	modelsNode->QueryDoubleAttribute("scaleMult", &mdScaleMult);
-//
-//	string tmp;
-//
-//	//read the pose
-//	Vector<6> v6Pose;
-//	tmp = modelsNode->Attribute("pose");
-//	sscanf(tmp.c_str(), "%lf %lf %lf %lf %lf %lf", &v6Pose[0], &v6Pose[1],
-//			&v6Pose[2], &v6Pose[3], &v6Pose[4], &v6Pose[5]);
-//	mse3MfromW = SE3<>::exp(v6Pose);
-//
-//	//read the offset
-//	Vector<6> v6Offset;
-//	tmp = modelsNode->Attribute("offset");
-//	sscanf(tmp.c_str(), "%lf %lf %lf %lf %lf %lf", &v6Offset[0], &v6Offset[1],
-//			&v6Offset[2], &v6Offset[3], &v6Offset[4], &v6Offset[5]);
-//	mse3ModelOffset = SE3<>::exp(v6Offset);
-//
-//	mbDelayedLoad = true;
-	return true;
-}
-
-/**
  * Perform a delayed load
  */
 void Model3DS::_DelayedLoad() {
@@ -816,4 +736,5 @@ deque<Texture *> Model3DS::_LoadTextures(Lib3dsFile * pModel, string dirpath) {
 		}
 	}
 	return (texList);
+}
 }
