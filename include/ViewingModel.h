@@ -9,6 +9,7 @@
 //-------------------------------------------------------------------
 #include "OpenGL.h"
 #include "BasicFace.h"
+#include "IndexedMesh.h"
 
 #include <Eigen/Sparse>
 #include <Eigen/Core>
@@ -77,15 +78,16 @@ namespace TextureTransfer
 			  cv::Point2d start_point, cv::Point2d end_point, Vector2 & t1, Vector2 & t2, Vector3 & p1, Vector3 & p2);
 	  void RenewMeshDataConstruct(const int & separateNumber);
 
-	  void  QueryNormal(const int & outer_loop, const int & mesh_index, GLdouble * normal);
-	  void  QueryVertex(const int & outer_loop, const int & mesh_index, GLdouble * vertex);
+	  void  QueryNormal(const int & outer_loop, const int & mesh_index, const int & vertexIdx, GLdouble * normal);
+	  void  QueryVertex(const int & outer_loop, const int & mesh_index, const int & vertexIdx, GLdouble * vertex);
 	  void  QueryAmbient(const int & outer_loop, const int & mesh_index, GLfloat * ambient);
 	  void  QueryDiffuse(const int & outer_loop, const int & mesh_index, GLfloat * diffuse);
 	  void  QuerySpecular(const int & outer_loop, const int & mesh_index, GLfloat  * specular);
-	  double QueryVertexColor(const int & outer_loop, const int & mesh_index) const;
+	  double QueryVertexColor(const int & outer_loop, const int & mesh_index, const int & vertexIdx) const;
 
 	  int GetMeshSize() const;
-	  int GetMeshIndicesSum(const int & outer_loop) const;
+	  int GetMeshFacesSize(const int & outer_loop) const;
+	  int GetMeshInnerFacesSize(const int & outer_loop, const int & inner_loop) const { return mMesh[outer_loop]->mFaces[inner_loop].size();}
 	  int GetMeshFlag(const int & outer_loop) const;
 	  void IncrementSumOfStrokes();
 
@@ -128,7 +130,7 @@ namespace TextureTransfer
 	  std::vector<int> mMinStartIndex;
 	  std::vector<int> mMinEndIndex;
 
-	  std::vector<Mesh> mMesh;
+	  std::vector< boost::shared_ptr<IndexedMesh> > mMesh;
 
 	  Eigen::SparseMatrix<double> sparse_laplacian;
 	  Eigen::VectorXd b,mHarmonicValue;

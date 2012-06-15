@@ -116,30 +116,30 @@ namespace TextureTransfer
 	  mFaces.clear() ;
 	}
 
-	void IndexedMesh::save(const std::string& file_name) {
-	  unsigned int i,j ;
+	void IndexedMesh::save(const std::string& file_name)
+	{
 	  std::ofstream out(file_name.c_str()) ;
 
 	  mTextureCoords.clear();
 	  mTextureFaces.clear();
 
-	  for(i=0; i<mVertices.size(); i++) {
+	  for(int i=0; i<mVertices.size(); i++) {
 		out << "v " << mVertices[i].point << std::endl ;
 	  }
-	  for(i=0; i<mVertices.size(); i++) {
+	  for(int i=0; i<mVertices.size(); i++) {
 		out << "vt " << mVertices[i].tex_coord << std::endl ;
 		mTextureCoords.push_back(mVertices[i].tex_coord);
 	  }
-	  for(i=0; i<mFaces.size(); i++) {
+	  for(int i=0; i<mFaces.size(); i++) {
 		out << "f " ;
 		const Facet& F = mFaces[i] ;
-		for(j=0; j<F.size(); j++) {
+		for(int j=0; j<F.size(); j++) {
 		  out << (F[j] + 1) << "/" << (F[j] + 1) << " " ;
 		  mTextureFaces.push_back(F[j]+1);
 		}
 		out << std::endl ;
 	  }
-	  for(i=0; i<mVertices.size(); i++) {
+	  for(int i=0; i<mVertices.size(); i++) {
 		if(mVertices[i].locked) {
 		  out << "# anchor " << i+1 << std::endl ;
 		}

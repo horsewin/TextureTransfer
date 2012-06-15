@@ -23,7 +23,7 @@
 //---------------------------------------------------------------------------
 // Constant/Define
 //---------------------------------------------------------------------------
-#define TEXTURE_TRIANGLES 1
+#define TEXTURE_TRIANGLES 0
 #define VISUALIZE 0 //OpenCVのウィンドウ上にテクスチャ展開の点群を表示する
 #define FEEDBACK_VISUALIZE 0 //OpenCVから計算してきた輪郭情報をGL上に持っていくときの輪郭情報を表示する
 
@@ -434,27 +434,27 @@ void DrawModelMonitor(int x, int y, int w, int h, ViewingModel * model, bool isS
   glGetDoublev(GL_PROJECTION_MATRIX, projection[separationW]);
   glGetDoublev(GL_MODELVIEW_MATRIX, modelview[separationW]);
   
-//  //for debug drawing lines
-//  glColor3f(1.0,1.0,0.0);
-//  glLineWidth(5);
-//  glBegin(GL_LINE_STRIP);
-//  glVertex3d(clickPoint[0].x, clickPoint[0].y, clickPoint[0].z);
-//  glVertex3d(clickPoint[1].x, clickPoint[1].y, clickPoint[1].z);
-//  glEnd();
-
+  //for debug drawing lines
+#if DEBUG_DRAWINGLINES
+  glColor3f(1.0,1.0,0.0);
+  glLineWidth(5);
+  glBegin(GL_LINE_STRIP);
+  glVertex3d(clickPoint[0].x, clickPoint[0].y, clickPoint[0].z);
+  glVertex3d(clickPoint[1].x, clickPoint[1].y, clickPoint[1].z);
+  glEnd();
+#endif
 	glEnable(GL_LIGHT0);
 	glEnable(GL_LIGHTING);
 	glEnable(GL_COLOR_MATERIAL);
 
-	if(!displayTexture)
+	if(!false)
 	{
 		//  Rendering a model
 		glLineWidth(1);
 		glColor3f(1.0f, 0.0f, 0.0f);
 
-		int nMeshs = model->GetMeshSize();
-
-		REP(loop,nMeshs){
+		REP(loopMesh, model->GetMeshSize())
+		{
 			GLdouble normal[3];
 			GLdouble vertex[3];
 
@@ -463,21 +463,25 @@ void DrawModelMonitor(int x, int y, int w, int h, ViewingModel * model, bool isS
 			GLfloat specular[4];
 
 			glBegin(GL_TRIANGLES);
-			REP(id,model->GetMeshIndicesSum(loop) ){
-				ColorSetting( model->QueryVertexColor(loop,id) , false);
-				model->QueryNormal(loop, id, normal);
-				model->QueryVertex(loop, id, vertex);
-				model->QueryAmbient(loop, id, ambient);
-				model->QueryDiffuse(loop, id, diffuse);
-				model->QuerySpecular(loop, id, specular);
-				glMaterialfv(GL_FRONT_AND_BACK, GL_AMBIENT, ambient);
-				glMaterialfv(GL_FRONT_AND_BACK, GL_DIFFUSE, diffuse);
-				glMaterialfv(GL_FRONT_AND_BACK, GL_SPECULAR, specular);
+			REP(faceIdx,model->GetMeshFacesSize(loopMesh) )
+			{
+				REP(verIdx, model->GetMeshInnerFacesSize(loopMesh,faceIdx))
+				{
+					ColorSetting( model->QueryVertexColor(loopMesh, faceIdx, verIdx) , false);
+					model->QueryNormal(loopMesh, faceIdx, verIdx, normal);
+					model->QueryVertex(loopMesh, faceIdx, verIdx, vertex);
+	//				model->QueryAmbient(loop, id, ambient);
+	//				model->QueryDiffuse(loop, id, diffuse);
+	//				model->QuerySpecular(loop, id, specular);
+	//				glMaterialfv(GL_FRONT_AND_BACK, GL_AMBIENT, ambient);
+	//				glMaterialfv(GL_FRONT_AND_BACK, GL_DIFFUSE, diffuse);
+	//				glMaterialfv(GL_FRONT_AND_BACK, GL_SPECULAR, specular);
 
-				//      glColor3f(diffuse[0]*lit_dif[0], diffuse[1]*lit_dif[1], diffuse[2]*lit_dif[2]);
-				//      glColor3f(diffuse[0], diffuse[1], diffuse[2]);
-				glNormal3dv(normal);
-				glVertex3dv(vertex);
+					//      glColor3f(diffuse[0]*lit_dif[0], diffuse[1]*lit_dif[1], diffuse[2]*lit_dif[2]);
+					//      glColor3f(diffuse[0], diffuse[1], diffuse[2]);
+					glNormal3dv(normal);
+					glVertex3dv(vertex);
+				}
 			}
 			glEnd();
 		}
@@ -488,9 +492,10 @@ void DrawModelMonitor(int x, int y, int w, int h, ViewingModel * model, bool isS
 	else
 	{
 		IndexedMesh * tmpMesh = model->mLSCM->mMesh.get();
-	//	cout << model->mTexture.size() << endl;
+
 		int isTriangles = 0;
-		REP(texNumber, model->mTexture.size()){
+		REP(texNumber, model->mTexture.size())
+		{
 			//テクスチャセット
 			model->mTexture[texNumber]->bind();
 
@@ -805,6 +810,8 @@ void Init()
 	glColorMaterial(GL_FRONT_AND_BACK,GL_AMBIENT_AND_DIFFUSE);
 	glEnable(GL_COLOR_MATERIAL);
 
+	glShadeModel(GL_SMOOTH);
+
 	//load 3ds model
 	const char * model1Name = "Model3DS/Torus.3ds";
 	const char * model2Name = "Model3DS/HatuneMiku.3ds";
@@ -817,7 +824,7 @@ void Init()
 	models[0]->mLSCM->run("CG","");
 	models[0]->mLSCM->mMesh->save("Model3DS/test2.obj");
 	models[0]->mLSCM->mMesh->FindTextureMax();
-
+//
 	models[1]->LoadTexture("Hatsune2.bmp");
 	models[1]->ConvertDataStructure();
 	models[1]->mLSCM->run("CG","");

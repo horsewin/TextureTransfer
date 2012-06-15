@@ -67,6 +67,7 @@ namespace TextureTransfer
 		Vector2 tex_coord ;
 		bool    locked ;
 		int     id ;
+		int		 allIndex;
 	};
 
 	class Facet : public std::vector<int> {

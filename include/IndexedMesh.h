@@ -34,9 +34,12 @@ namespace TextureTransfer
 	  void FindTextureMax();
 
 	 public:
+	  unsigned int nIndex;
 	  std::vector<Vertex> mVertices ;
 	  std::vector<Facet>  mFaces ;
-	  bool mInFacet ;
+
+	  bool mInFacet ;	//faceを追加するときにmutual exclusion的な使い方をする
+
 	  Vector2 mTexMax, mTexMin;
 
 	  std::vector<Vector2> mTextureCoords;
@@ -44,6 +47,8 @@ namespace TextureTransfer
 	  std::vector<int> mTextureFaces;
 
 	  std::vector<int> mTextureNumber; 		//to indicate corresponding texture image number. This vector size is the same as mVertices vector size
+
+	  int ind_max;
 
 	};
 
