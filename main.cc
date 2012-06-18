@@ -262,11 +262,9 @@ void mouse(int button, int state, int x, int y)
 		}
 
 		//button OFF
-		if(state == GLUT_UP && button == GLUT_LEFT_BUTTON){
+		if(state == GLUT_UP && button == GLUT_LEFT_BUTTON)
+		{
 			models[manupulation-1]->IncrementSumOfStrokes();
-
-//			//get each matrix parameter
-//			SetMatrixParam();
 
 			//reserver click points
 			cv::Point2d start_point , end_point;
@@ -814,7 +812,7 @@ void Init()
 
 	//load 3ds model
 	const char * model1Name = "Model3DS/Torus.3ds";
-	const char * model2Name = "Model3DS/HatuneMiku.3ds";
+	const char * model2Name = "Model3DS/cow.obj";
 	models[0] = new ViewingModel(model1Name);
 	models[1] = new ViewingModel(model2Name);
 	manupulation = 1;

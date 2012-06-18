@@ -224,8 +224,8 @@ namespace TextureTransfer
 
 					mMesh[loop]->add_vertex_to_facet(mesh->faces[loopFace].index[loopVer]);
 					mMesh[loop]->mVertices[mesh->faces[loopFace].index[loopVer]].normal = normal[loopFace];
-					mMesh[loop]->mTexParts.push_back(0.0);
 
+					mMesh[loop]->mTexParts.push_back(0.0);
 					mMesh[loop]->mTextureNumber.push_back(0);
 
 				}
@@ -272,31 +272,69 @@ namespace TextureTransfer
 	{
 		std::ifstream input(mModelname);
 
+		//mesh data structure for LSCM
 		//	IndexedMesh * tmpMesh = mLSCM[0]->mesh_.get();
 		IndexedMesh * tmpMesh = mLSCM->mMesh.get();
 		tmpMesh->clear();
-		while (input) {
+
+		//mesh data structure for displaying 3D model
+		mMesh.clear();
+		mMesh.push_back( boost::shared_ptr<IndexedMesh>(new IndexedMesh()) );
+		mMesh[0]->ind_max = 0;
+
+		while (input) //until input data continues
+		{
 			char line[1024];
 			input.getline(line, 1024);
 			std::stringstream line_input(line);
+
 			std::string keyword;
 			line_input >> keyword;
-			if (keyword == "v") {
+
+			//in the case of vertex information
+			if (keyword == "v")
+			{
 				Vector3 p;
 				line_input >> p.x >> p.y >> p.z;
+
 				tmpMesh->add_vertex(p, Vector2(0, 0));
-			} else if (keyword == "vt") {
+				mMesh[0]->add_vertex(p, Vector2(0, 0));
+
+				mMesh[0]->mTexParts.push_back(0.0);
+				mMesh[0]->mTextureNumber.push_back(0);
+
+			}
+			//in the case of texture coord information
+			else if (keyword == "vt")
+			{
 				// Ignore tex vertices
-			} else if (keyword == "f") {
+			}
+			//in the case of face connectivity information
+			else if (keyword == "f")
+			{
 				tmpMesh->begin_facet();
-				while (line_input) {
+				mMesh[0]->begin_facet();
+
+				while (line_input)
+				{
 					std::string s;
 					line_input >> s;
-					if (s.length() > 0) {
+					if (s.length() > 0)
+					{
 						std::stringstream v_input(s.c_str());
 						int index;
 						v_input >> index;
+
+						//set face connectivity with a vertex
 						tmpMesh->add_vertex_to_facet(index - 1);
+						mMesh[0]->add_vertex_to_facet(index - 1);
+
+						//set max value of indices
+						if( mMesh[0]->ind_max < index - 1 )
+						{
+							mMesh[0]->ind_max = index - 1;
+						}
+
 						char c;
 						v_input >> c;
 						if (c == '/') {
@@ -305,35 +343,34 @@ namespace TextureTransfer
 						}
 					}
 				}
+
+				mMesh[0]->end_facet();
 				tmpMesh->end_facet();
 			}
 		}
+
 		std::cout << "Loaded OBJ file :" << tmpMesh->mVertices.size()
 				<< " vertices and " << tmpMesh->mFaces.size() << " facets"
 				<< std::endl;
 
-		//Convert from OBJ format to 3DS format
-		mMesh.clear();
-		Mesh tmp3DSMesh;
-		int nFaces = static_cast<int>(tmpMesh->mFaces.size());
 
-		tmp3DSMesh.normal.resize(nFaces * 3 * 3); //法線用メモリ確保(面の数*3頂点*3座標)
-		tmp3DSMesh.vertex.resize(nFaces * 3 * 3); //頂点用メモリ確保
-		tmp3DSMesh.nIndex = nFaces * 3;
-		tmp3DSMesh.ind.resize(tmp3DSMesh.nIndex); //面の数*3頂点分=総インデックス数
+		if( static_cast<int>(mMesh[0]->mVertices.size()) <= mMesh[0]->ind_max)
+		{
+			cerr << "The size of vertices is less than max value of indices" << endl;
+			return;
+		}
 
-		for (int face = 0; face < nFaces; face++) {
-			REP(i,3) {
-				Vector3 tmpVertex = tmpMesh->mVertices[face + i].point;
-				tmp3DSMesh.vertex[face * 9 + i * 3 + 0] = tmpVertex.x;
-				tmp3DSMesh.vertex[face * 9 + i * 3 + 1] = tmpVertex.y;
-				tmp3DSMesh.vertex[face * 9 + i * 3 + 2] = tmpVertex.z;
-				//			cout << face*3 + i*3 << endl;
+		REP(loopFace, mMesh[0]->mFaces.size())
+		{
+			REP(loopVer, mMesh[0]->mFaces[loopFace].size())
+			{
+				mMesh[0]->mVertices[mMesh[0]->mFaces[loopFace].at(loopVer)].allIndex
+					= mMesh[0]->mFaces[loopFace].at(loopVer);
 			}
 		}
-	//	mMesh.push_back(tmp3DSMesh); //TODO IndexedMeshに修正
-		cout << "Converted OBJ to 3DS : " << tmp3DSMesh.vertex.size() / 3
-				<< " vertices and " << tmp3DSMesh.nIndex / 3 << " facets"
+
+		cout << "Converted OBJ to 3DS : " << mMesh[0]->mVertices.size()
+				<< " vertices and " << mMesh[0]->mFaces.size() << " facets"
 				<< std::endl;
 		mIsConvert = true;
 	}
