@@ -23,7 +23,7 @@
 //---------------------------------------------------------------------------
 // Constant/Define
 //---------------------------------------------------------------------------
-#define TEXTURE_TRIANGLES 0
+#define TEXTURE_TRIANGLES 1
 #define VISUALIZE 0 //OpenCVのウィンドウ上にテクスチャ展開の点群を表示する
 #define FEEDBACK_VISUALIZE 0 //OpenCVから計算してきた輪郭情報をGL上に持っていくときの輪郭情報を表示する
 

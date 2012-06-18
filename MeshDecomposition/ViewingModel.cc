@@ -765,26 +765,28 @@ namespace TextureTransfer
 
 		mLSCM->mMesh->mTexParts.clear();
 
-		int sumIndices = 0;
+//		int sumIndices = 0;
 		REP(loopMesh,GetMeshSize())
 		{
 			REP(loopFace,GetMeshFacesSize(loopMesh))
 			{
-				double decomValue = static_cast<double>(mHarmonicValue[mMesh[loopMesh]->mVertices[loopFace].allIndex]);
+				REP(loopVer, GetMeshInnerFacesSize(loopMesh, loopFace)){
+					int index = mMesh[loopMesh]->mFaces[loopFace].at(loopVer);
+					double decomValue = static_cast<double>(mHarmonicValue[mMesh[loopMesh]->mVertices[index].allIndex]);
 
-				mLSCM->mMesh->mTexParts.push_back(decomValue);
+					mLSCM->mMesh->mTexParts.push_back(decomValue);
+					//			// a texture coord is changed in the case of another part
+					//			if(decomValue <= 0.5 ){
+					//				cout << sumIndices + loopv*3<< endl;
+					//				REP(id,3){
+					//					mLSCM->mesh_->mTextureCoords[sumIndices + loopFace*3 + id].x += (mLSCM->mesh_->mTexMax.x - mLSCM->mesh_->mTexMin.x);
+					//					mLSCM->mesh_->mTextureCoords[sumIndices + loopFace*3 + id].y += (mLSCM->mesh_->mTexMax.y - mLSCM->mesh_->mTexMin.y);
+					//				}
+					//			}
+					//			cout << sumIndices + loopFace*3<< endl;
 
-				//			// a texture coord is changed in the case of another part
-				//			if(decomValue <= 0.5 ){
-				//				cout << sumIndices + loopv*3<< endl;
-				//				REP(id,3){
-				//					mLSCM->mesh_->mTextureCoords[sumIndices + loopFace*3 + id].x += (mLSCM->mesh_->mTexMax.x - mLSCM->mesh_->mTexMin.x);
-				//					mLSCM->mesh_->mTextureCoords[sumIndices + loopFace*3 + id].y += (mLSCM->mesh_->mTexMax.y - mLSCM->mesh_->mTexMin.y);
-				//				}
-				//			}
-				//			cout << sumIndices + loopFace*3<< endl;
+				}
 			}
-//			sumIndices += nIndices * 3;
 		}
 	}
 
