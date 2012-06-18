@@ -126,7 +126,7 @@ namespace TextureTransfer
 
 	  char * mModelname;
 	  int mSumOfVertices; 									// the number of vertices of this model
-	  int mSumOfIndices; 									// the number of strokes added to this model
+	  int mSumOfStrokes; 									// the number of strokes added to this model
 	  std::vector<int> mMinStartIndex;
 	  std::vector<int> mMinEndIndex;
 

@@ -582,8 +582,8 @@ namespace TextureTransfer
 			cerr << "No loaded matrix has found!" << endl;
 			return;
 		}
-		ublas::matrix<int> mat_b(mSumOfVertices + 2 * mSumOfIndices, 1);
-		ublas::matrix<int> mat_wp(2 * mSumOfIndices, mSumOfVertices);
+		ublas::matrix<int> mat_b(mSumOfVertices + 2 * mSumOfStrokes, 1);
+		ublas::matrix<int> mat_wp(2 * mSumOfStrokes, mSumOfVertices);
 
 		// solve equation Ax=b
 		// A:sparse matrix, x:unknown parameter vector, b:known vector
@@ -592,14 +592,14 @@ namespace TextureTransfer
 		b = VectorXd::Zero(mSumOfVertices);
 		mHarmonicValue = VectorXd::Zero(mSumOfVertices);
 
-		Q.reserve(2 * mSumOfIndices); // desinate the number of non-zero approximately
+		Q.reserve(2 * mSumOfStrokes); // desinate the number of non-zero approximately
 
 		// a set of indices of strokes			TransferController controller;
 
 		int * hash_table = new int[mSumOfVertices];
 		REP(i,mSumOfVertices)
 			hash_table[i] = 0;
-		REP(i,mSumOfIndices) {
+		REP(i,mSumOfStrokes) {
 			//     cout << "start ind:" << min_start_ind[i]<<endl;
 			//     cout << "end ind:" << min_end_ind[i]<<endl;
 			if (hash_table[mMinStartIndex[i]] == 0) {
@@ -614,7 +614,7 @@ namespace TextureTransfer
 		delete hash_table;
 		//  cout << Q << endl;
 		// set rhs value
-		REP(i,mSumOfIndices) {
+		REP(i,mSumOfStrokes) {
 			b[mMinStartIndex[i]] = weight * weight; // estimatable vector value
 		}
 
@@ -807,13 +807,11 @@ namespace TextureTransfer
 		{
 			REP(faceIdx, mMesh[loopMesh]->mFaces.size())
 			{
-				mLSCM->mMesh->begin_facet();
 				REP(vertexIdx, mMesh[loopMesh]->mFaces[faceIdx].size())
 				{
 					int index = mMesh[loopMesh]->mFaces[faceIdx].at(vertexIdx);
 					mLSCM->mMesh->add_vertex(mMesh[loopMesh]->mVertices[index].point, Vector2(0,0));
 				}
-				mLSCM->mMesh->end_facet();
 			}
 		}
 
@@ -827,7 +825,7 @@ namespace TextureTransfer
 				REP(vertexIdx, mMesh[loopMesh]->mFaces[faceIdx].size())
 				{
 					int index = mMesh[loopMesh]->mFaces[faceIdx].at(vertexIdx);
-					mLSCM->mMesh->add_vertex();
+					mLSCM->mMesh->add_vertex_to_facet(index + sumOfVertices);
 				}
 				mLSCM->mMesh->end_facet();
 			}
@@ -962,7 +960,7 @@ namespace TextureTransfer
 	}
 
 	void ViewingModel::IncrementSumOfStrokes() {
-		this->mSumOfIndices++;
+		this->mSumOfStrokes++;
 	}
 
 	/*
@@ -995,7 +993,7 @@ namespace TextureTransfer
 	 * @name : model name for loading
 	 */
 	ViewingModel::ViewingModel(const char * name)
-	: mScales(5.0), mModelname(name), mSumOfVertices(0), mSumOfIndices(0),  mIsConvert(false), mIsLoadMatrix(false),
+	: mScales(5.0), mModelname(name), mSumOfVertices(0), mSumOfStrokes(0),  mIsConvert(false), mIsLoadMatrix(false),
 	  mHasTexture(false), mMeshSelected(false)
 	{
 		//  mModelname = name;
