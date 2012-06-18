@@ -624,29 +624,34 @@ void DrawTextureMonitor(int x, int y, int w, int h, ViewingModel * model, const 
 #endif
 
 	IndexedMesh * im = model->mLSCM->mMesh.get();
-	if( controllObject != SELECT){
-	  int size = static_cast<int>(im->mTextureFaces.size());
 
-//	  glColor3d(0,1,0);
-	  for(int i=0; i<size; i+=3){
-		Vector2 tmp1 = im->mTextureCoords[ im->mTextureFaces.at(i) - 1];
-		Vector2 tmp2 = im->mTextureCoords[ im->mTextureFaces.at(i+1) - 1];
-		Vector2 tmp3 = im->mTextureCoords[ im->mTextureFaces.at(i+2) - 1];
+	cout << "mTexParts:" << im->mTexParts.size() << endl;
+	if( controllObject != SELECT)
+	{
 
-		double val = model->mLSCM->mMesh->mTexParts[i];
-		ColorSetting(val, true);
+		int size = static_cast<int>(im->mTextureFaces.size());
+
+		for(int i=0; i<size; i+=3)
+		{
+			Vector2 tmp1 = im->mTextureCoords[ im->mTextureFaces.at(i) - 1];
+			Vector2 tmp2 = im->mTextureCoords[ im->mTextureFaces.at(i+1) - 1];
+			Vector2 tmp3 = im->mTextureCoords[ im->mTextureFaces.at(i+2) - 1];
+
+			double val = model->mLSCM->mMesh->mTexParts[i];
+
+			ColorSetting(val, true);
 
 #if TEXTURE_TRIANGLES==0
-		glVertex2f(tmp1.x,tmp1.y);
-		glVertex2f(tmp2.x,tmp2.y);
-		glVertex2f(tmp2.x,tmp2.y);
-		glVertex2f(tmp3.x,tmp3.y);
-		glVertex2f(tmp3.x,tmp3.y);
-		glVertex2f(tmp1.x,tmp1.y);
+			glVertex2f(tmp1.x,tmp1.y);
+			glVertex2f(tmp2.x,tmp2.y);
+			glVertex2f(tmp2.x,tmp2.y);
+			glVertex2f(tmp3.x,tmp3.y);
+			glVertex2f(tmp3.x,tmp3.y);
+			glVertex2f(tmp1.x,tmp1.y);
 #else
-		glVertex2f(tmp1.x,tmp1.y);
-		glVertex2f(tmp2.x,tmp2.y);
-		glVertex2f(tmp3.x,tmp3.y);
+			glVertex2f(tmp1.x,tmp1.y);
+			glVertex2f(tmp2.x,tmp2.y);
+			glVertex2f(tmp3.x,tmp3.y);
 
 #endif
 	  }

@@ -281,6 +281,7 @@ namespace TextureTransfer
 		mMesh.clear();
 		mMesh.push_back( boost::shared_ptr<IndexedMesh>(new IndexedMesh()) );
 		mMesh[0]->ind_max = 0;
+		mMesh[0]->nIndex  = 0;
 
 		while (input) //until input data continues
 		{
@@ -299,9 +300,6 @@ namespace TextureTransfer
 
 				tmpMesh->add_vertex(p, Vector2(0, 0));
 				mMesh[0]->add_vertex(p, Vector2(0, 0));
-
-				mMesh[0]->mTexParts.push_back(0.0);
-				mMesh[0]->mTextureNumber.push_back(0);
 
 			}
 			//in the case of texture coord information
@@ -349,6 +347,8 @@ namespace TextureTransfer
 			}
 		}
 
+		mMesh[0]->nIndex = mMesh[0]->ind_max;
+
 		std::cout << "Loaded OBJ file :" << tmpMesh->mVertices.size()
 				<< " vertices and " << tmpMesh->mFaces.size() << " facets"
 				<< std::endl;
@@ -366,6 +366,10 @@ namespace TextureTransfer
 			{
 				mMesh[0]->mVertices[mMesh[0]->mFaces[loopFace].at(loopVer)].allIndex
 					= mMesh[0]->mFaces[loopFace].at(loopVer);
+				mMesh[0]->mTexParts.push_back(0.0);
+				mMesh[0]->mTextureNumber.push_back(0);
+				mLSCM->mMesh->mTexParts.push_back(0.0);
+				mLSCM->mMesh->mTextureNumber.push_back(0);
 			}
 		}
 
