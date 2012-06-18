@@ -625,7 +625,6 @@ void DrawTextureMonitor(int x, int y, int w, int h, ViewingModel * model, const 
 
 	IndexedMesh * im = model->mLSCM->mMesh.get();
 
-	cout << "mTexParts:" << im->mTexParts.size() << endl;
 	if( controllObject != SELECT)
 	{
 
