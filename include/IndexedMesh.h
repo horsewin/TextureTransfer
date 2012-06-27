@@ -34,22 +34,15 @@ namespace TextureTransfer
 	  void FindTextureMax();
 
 	 public:
-	  unsigned int nIndex;
-	  std::vector<Vertex> mVertices ;
-	  std::vector<Facet>  mFaces ;
+	  std::vector<Vertex> mVertices;				//vertex information for creating mesh structure
+	  std::vector<Facet>  mFaces;					//面情報の頂点座標の格納順序
+	  std::vector<Facet>  mTextureFaces;			//面情報のテクスチャ座標の格納順序
 
 	  bool mInFacet ;	//faceを追加するときにmutual exclusion的な使い方をする
 
 	  Vector2 mTexMax, mTexMin;
-
-	  std::vector<Vector2> mTextureCoords;
-	  std::vector<double> mTexParts;			//for reserving harmonic field value. This vector size is the same as mVertices vector size
-	  std::vector<int> mTextureFaces;
-
-	  std::vector<int> mTextureNumber; 		//to indicate corresponding texture image number. This vector size is the same as mVertices vector size
-
-	  int ind_max;
-
+	  unsigned int mNumIndex;
+	  int mIdxMax;
 	};
 
 }

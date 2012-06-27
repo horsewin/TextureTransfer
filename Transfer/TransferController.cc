@@ -191,67 +191,67 @@ namespace TextureTransfer
 		cvReleaseImage(&dst);
 	}
 
-	void TransferController::SetHashmap( const int & x, const int & y, const int & val, const int & modelNumber)
-	{
-		if( modelNumber > 1){
-			cerr << "Set Error in TransferController: Access to out of range of array" << endl;
-			cerr << "model number = " << modelNumber << endl;
-			return;
-		}
-		if(0<= x && x < W_WIDTH/2
-		&& 0<= y && y < W_HEIGHT/2){
-			mIndexHashmap[x][y][modelNumber] = val;
-	//		printf("Model%d's (%d,%d)=%d\n", modelNumber, x, y, val);
-		}
-		else
-		{
-			cerr << "Set Error in TransferController: Access to out of range of array" << endl;
-			cerr << "x=" << x << ",y=" << y << endl;
-		}
-	}
-
-	int TransferController::GetHashmap( int x, int y, const int & modelNumber)
-	{
-		if( modelNumber > 1){
-			cerr << "Get Error in TransferController: Access to out of range of array : ";
-			cerr << "model number = " << modelNumber << endl;
-			return 0;
-		}
-		if(0<= x && x < W_WIDTH/2 && 0<= y && y < W_HEIGHT/2){
-			double dist = 99999;
-			int index = -1;
-			REP(i,mMeshes[modelNumber].size()){
-				double curDist = sqrt( pow( (double)mMeshes[modelNumber].at(i).second.x - x, 2) + pow((double)mMeshes[modelNumber].at(i).second.y - y,2));
-				if( dist >= curDist){
-					index = mMeshes[modelNumber].at(i).first;
-					dist = curDist;
-				}
-				if( dist < 1) break;
-			}
-			return index;
-	//		if(mIndexHashmap[x][y][modelNumber] == 0){
-	//			for(int i=-2; i<= 2; i++){
-	//				y+=i;
-	//				for(int j=-2; j<= 2; j++){
-	//					x+=j;
-	//					if(0<= x && x < W_WIDTH/2 && 0<= y && y < W_HEIGHT/2){
-	//						if(mIndexHashmap[x][y][modelNumber] != 0) return mIndexHashmap[x][y][modelNumber];
-	//					}
-	//					x-=j;
-	//				}
-	//				y-=i;
-	//			}
-	//		}
-	//		else
-	//		{
-	//			return mIndexHashmap[x][y][modelNumber];
-	//		}
-		}
-		else
-		{
-			cerr << "Get Error in TransferController: Access to out of range of array" << endl;
-			cerr << "x=" << x << ",y=" << y << endl;
-			return 0;
-		}
-	}
+//	void TransferController::SetHashmap( const int & x, const int & y, const int & val, const int & modelNumber)
+//	{
+//		if( modelNumber > 1){
+//			cerr << "Set Error in TransferController: Access to out of range of array" << endl;
+//			cerr << "model number = " << modelNumber << endl;
+//			return;
+//		}
+//		if(0<= x && x < W_WIDTH/2
+//		&& 0<= y && y < W_HEIGHT/2){
+//			mIndexHashmap[x][y][modelNumber] = val;
+//	//		printf("Model%d's (%d,%d)=%d\n", modelNumber, x, y, val);
+//		}
+//		else
+//		{
+//			cerr << "Set Error in TransferController: Access to out of range of array" << endl;
+//			cerr << "x=" << x << ",y=" << y << endl;
+//		}
+//	}
+//
+//	int TransferController::GetHashmap( int x, int y, const int & modelNumber)
+//	{
+//		if( modelNumber > 1){
+//			cerr << "Get Error in TransferController: Access to out of range of array : ";
+//			cerr << "model number = " << modelNumber << endl;
+//			return 0;
+//		}
+//		if(0<= x && x < W_WIDTH/2 && 0<= y && y < W_HEIGHT/2){
+//			double dist = 99999;
+//			int index = -1;
+//			REP(i,mMeshes[modelNumber].size()){
+//				double curDist = sqrt( pow( (double)mMeshes[modelNumber].at(i).second.x - x, 2) + pow((double)mMeshes[modelNumber].at(i).second.y - y,2));
+//				if( dist >= curDist){
+//					index = mMeshes[modelNumber].at(i).first;
+//					dist = curDist;
+//				}
+//				if( dist < 1) break;
+//			}
+//			return index;
+//	//		if(mIndexHashmap[x][y][modelNumber] == 0){
+//	//			for(int i=-2; i<= 2; i++){
+//	//				y+=i;
+//	//				for(int j=-2; j<= 2; j++){
+//	//					x+=j;
+//	//					if(0<= x && x < W_WIDTH/2 && 0<= y && y < W_HEIGHT/2){
+//	//						if(mIndexHashmap[x][y][modelNumber] != 0) return mIndexHashmap[x][y][modelNumber];
+//	//					}
+//	//					x-=j;
+//	//				}
+//	//				y-=i;
+//	//			}
+//	//		}
+//	//		else
+//	//		{
+//	//			return mIndexHashmap[x][y][modelNumber];
+//	//		}
+//		}
+//		else
+//		{
+//			cerr << "Get Error in TransferController: Access to out of range of array" << endl;
+//			cerr << "x=" << x << ",y=" << y << endl;
+//			return 0;
+//		}
+//	}
 }

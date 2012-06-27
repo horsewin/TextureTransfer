@@ -189,8 +189,8 @@ namespace TextureTransfer
 			mesh = m_model->meshes[loop]; //mLoop番目のメッシュへのポインタ
 			if (mesh->nfaces == 0)
 			{
-				mMesh[loop]->ind_max = 0;
-				mMesh[loop]->nIndex = 0;
+				mMesh[loop]->mIdxMax = 0;
+				mMesh[loop]->mNumIndex = 0;
 	//			mMesh[loop] = NULL;  //IndexedMeshをNULLにする
 				continue;
 			} //メッシュが無い場合はカット
@@ -200,10 +200,10 @@ namespace TextureTransfer
 			lib3ds_mesh_calculate_face_normals(mesh, &normal[0]); //面法線の取り出し
 
 	//		mMesh[loop]->mVertices.resize(mesh->nvertices); //vertex用メモリ確保
-			mMesh[loop]->nIndex = mesh->nvertices;
+			mMesh[loop]->mNumIndex = mesh->nvertices;
 
 	//		//インデックス最大値の初期化
-			mMesh[loop]->ind_max = 0;
+			mMesh[loop]->mIdxMax = 0;
 
 			//頂点データと法線データをインデックスに合わせて格納
 			for (int loopVer = 0; loopVer < mesh->nvertices; ++loopVer)
@@ -221,13 +221,8 @@ namespace TextureTransfer
 				//reserver vertex information
 				REP(loopVer,3)
 				{
-
 					mMesh[loop]->add_vertex_to_facet(mesh->faces[loopFace].index[loopVer]);
 					mMesh[loop]->mVertices[mesh->faces[loopFace].index[loopVer]].normal = normal[loopFace];
-
-					mMesh[loop]->mTexParts.push_back(0.0);
-					mMesh[loop]->mTextureNumber.push_back(0);
-
 				}
 				mMesh[loop]->end_facet();
 
@@ -241,7 +236,7 @@ namespace TextureTransfer
 					// これまでのメッシュグループのインデックス最大値を足す
 					REP(i,loop)
 					{
-						mMesh[loop]->mVertices[mesh->faces[loopFace].index[loopVer]].allIndex += mMesh[i]->ind_max;
+						mMesh[loop]->mVertices[mesh->faces[loopFace].index[loopVer]].allIndex += mMesh[i]->mIdxMax;
 					}
 					//
 					// mesh->faces[loopX].index[idmesh] <- 頂点のインデックス値
@@ -251,9 +246,9 @@ namespace TextureTransfer
 					//				mMesh[loop].ind[loopX*3+idmesh] += (loopX*3 + idmesh);
 					//			mMesh[loop]->ind_max = loopX*3+idmesh;
 					// 現在のメッシュグループの中で最大のインデックスを探索
-					if (mMesh[loop]->ind_max < mesh->faces[loopFace].index[loopVer])
+					if (mMesh[loop]->mIdxMax < mesh->faces[loopFace].index[loopVer])
 					{
-						mMesh[loop]->ind_max = mesh->faces[loopFace].index[loopVer];
+						mMesh[loop]->mIdxMax = mesh->faces[loopFace].index[loopVer];
 					}
 				}
 			}
@@ -280,8 +275,8 @@ namespace TextureTransfer
 		//mesh data structure for displaying 3D model
 		mMesh.clear();
 		mMesh.push_back( boost::shared_ptr<IndexedMesh>(new IndexedMesh()) );
-		mMesh[0]->ind_max = 0;
-		mMesh[0]->nIndex  = 0;
+		mMesh[0]->mIdxMax = 0;
+		mMesh[0]->mNumIndex  = 0;
 
 		while (input) //until input data continues
 		{
@@ -300,6 +295,7 @@ namespace TextureTransfer
 
 				tmpMesh->add_vertex(p, Vector2(0, 0));
 				mMesh[0]->add_vertex(p, Vector2(0, 0));
+				tmpMesh->mVertices[tmpMesh->mVertices.size()-1].textureNumber = 0;
 
 			}
 			//in the case of texture coord information
@@ -328,9 +324,9 @@ namespace TextureTransfer
 						mMesh[0]->add_vertex_to_facet(index - 1);
 
 						//set max value of indices
-						if( mMesh[0]->ind_max < index - 1 )
+						if( mMesh[0]->mIdxMax < index - 1 )
 						{
-							mMesh[0]->ind_max = index - 1;
+							mMesh[0]->mIdxMax = index - 1;
 						}
 
 						char c;
@@ -347,14 +343,14 @@ namespace TextureTransfer
 			}
 		}
 
-		mMesh[0]->nIndex = mMesh[0]->ind_max;
+		mMesh[0]->mNumIndex = mMesh[0]->mIdxMax;
 
 		std::cout << "Loaded OBJ file :" << tmpMesh->mVertices.size()
 				<< " vertices and " << tmpMesh->mFaces.size() << " facets"
 				<< std::endl;
 
 
-		if( static_cast<int>(mMesh[0]->mVertices.size()) <= mMesh[0]->ind_max)
+		if( static_cast<int>(mMesh[0]->mVertices.size()) <= mMesh[0]->mIdxMax)
 		{
 			cerr << "The size of vertices is less than max value of indices" << endl;
 			return;
@@ -366,10 +362,6 @@ namespace TextureTransfer
 			{
 				mMesh[0]->mVertices[mMesh[0]->mFaces[loopFace].at(loopVer)].allIndex
 					= mMesh[0]->mFaces[loopFace].at(loopVer);
-				mMesh[0]->mTexParts.push_back(0.0);
-				mMesh[0]->mTextureNumber.push_back(0);
-				mLSCM->mMesh->mTexParts.push_back(0.0);
-				mLSCM->mMesh->mTextureNumber.push_back(0);
 			}
 		}
 
@@ -404,96 +396,117 @@ namespace TextureTransfer
 
 		ostringstream com1, com2;
 		com1 << "cp texture1.bmp " << sModel->materials[0]->texture1_map.name;
-		if (!system(com1.str().c_str())) {
-	//		cerr << "Error in ViewingModel: System command is not valid";
+		if (system(com1.str().c_str())) {
+			cerr << "Error in ViewingModel: System command is not valid";
 		}
 		com2 << "cp warping1.bmp " << sModel->materials[1]->texture1_map.name;
-		if (!system(com2.str().c_str())) {
-	//		cerr << "Error in ViewingModel: System command is not valid";
+		if (system(com2.str().c_str())) {
+			cerr << "Error in ViewingModel: System command is not valid";
 		}
 
 		sModel->nmeshes = sModel->nmaterials;
 		sModel->meshes = new Lib3dsMesh*[sModel->nmeshes];
 
-		IndexedMesh * tmpMesh = mLSCM->mMesh.get();
+		IndexedMesh * lscmMesh = mLSCM->mMesh.get();
 
-		if(!tmpMesh){
+		if(!lscmMesh){
 			cerr << "Error in Save3dsModel: tmpMesh is null pointer!!" << endl;
 		}
 
 
 		// Mesh loop
-		for(int texNumber=0; texNumber<sModel->nmeshes; texNumber++) {
+		for(int texNumber=0; texNumber<sModel->nmeshes; texNumber++)
+		{
 			ostringstream meshFilename;
 			meshFilename << "mesh" << texNumber;
 			sModel->meshes[texNumber] = lib3ds_mesh_new(meshFilename.str().c_str());
 
-			int nFaces = 0, nVertices = 0;
 			vector<int> indices;
-			//メッシュに属する頂点数を数えてインデックスを割り振る
-			for (unsigned int loopVer = 0; loopVer < tmpMesh->mVertices.size(); loopVer += 3) {
-				if (tmpMesh->mTextureNumber[loopVer + 0] == texNumber
-				||  tmpMesh->mTextureNumber[loopVer + 1] == texNumber
-				||	 tmpMesh->mTextureNumber[loopVer + 2] == texNumber)
+			vector<Vertex> vertices;
+			vector<int>	 indexVertex;
+			vector<Facet>  faces;
+
+			indexVertex.resize(lscmMesh->mVertices.size());
+
+			//texNumber番目に属する頂点情報のみとりだす
+			REP(verIdx, lscmMesh->mVertices.size())
+			{
+				if(lscmMesh->mVertices[verIdx].textureNumber == texNumber)
 				{
-					REP(id,3) {
-						indices.push_back(loopVer + id);
-						nVertices++;
-					}
-					nFaces++;
+					vertices.push_back(lscmMesh->mVertices[verIdx]);
+					indexVertex[verIdx] = vertices.size() - 1;
 				}
 			}
 
-			cout << "The number of vertices = " << nVertices << endl;
-			cout << "The number of faces= " << nFaces << endl;
+			//メッシュに属する頂点数を数えてインデックスを割り振る
+			REP(faceIdx, lscmMesh->mFaces.size() )
+			{
+				int index = lscmMesh->mFaces[faceIdx].at(0);
+				if(lscmMesh->mVertices[index].textureNumber == texNumber)
+				{
+					Facet face;
+					REP(verIdx, lscmMesh->mFaces[faceIdx].size())
+					{
+						face.push_back(indexVertex[ lscmMesh->mFaces[faceIdx].at(verIdx)]);
+						indices.push_back(indexVertex[ lscmMesh->mFaces[faceIdx].at(verIdx)]);
+					}
+					faces.push_back(face);
+				}
+			}
+
+//			for (unsigned int loopVer = 0; loopVer < lscmMesh->mVertices.size(); loopVer += 3)
+//			{
+//				//TODO 正しいデータ構造の値に修正
+//				if (lscmMesh->mVertices[loopVer + 0].textureNumber == texNumber
+//				||  lscmMesh->mVertices[loopVer + 1].textureNumber == texNumber
+//				||	 lscmMesh->mVertices[loopVer + 2].textureNumber == texNumber)
+//				{
+//					REP(id,3) {
+//						indices.push_back(loopVer + id);
+//						nVertices++;
+//					}
+//					nFaces++;
+//				}
+//			}
+
+			cout << "The number of vertices = " << vertices.size() << endl;
+			cout << "The number of faces= " << faces.size() << endl;
 
 			// Creating temporary memory for data of face
-			sModel->meshes[texNumber]->faces = new Lib3dsFace[nFaces];
-			sModel->meshes[texNumber]->vertices = new float[nVertices][3];
-			sModel->meshes[texNumber]->texcos = new float[nVertices][2];
-			sModel->meshes[texNumber]->nfaces = nFaces;
-			sModel->meshes[texNumber]->nvertices = nVertices;
+			sModel->meshes[texNumber]->faces = new Lib3dsFace[faces.size()];
+			sModel->meshes[texNumber]->vertices = new float[vertices.size()][3];
+			sModel->meshes[texNumber]->texcos = new float[vertices.size()][2];
+			sModel->meshes[texNumber]->nfaces = faces.size();
+			sModel->meshes[texNumber]->nvertices = vertices.size();
 
 			//for warping texture mapping
 			double ratio_x = (W_WIDTH * 0.5 - 1)
-					/ (tmpMesh->mTexMax.x - tmpMesh->mTexMin.x);
+					/ (lscmMesh->mTexMax.x - lscmMesh->mTexMin.x);
 			double ratio_y = (W_HEIGHT * 0.5 - 1)
-					/ (tmpMesh->mTexMax.y - tmpMesh->mTexMin.y); //
+					/ (lscmMesh->mTexMax.y - lscmMesh->mTexMin.y); //
 
-			// Reserve the vertices information
-			nFaces = 0;
-			nVertices = 0;
-			for (unsigned int loopVer = 0; loopVer < tmpMesh->mVertices.size(); loopVer+=3)
+			REP(faceIdx, faces.size() )
 			{
-				if (tmpMesh->mTextureNumber[loopVer + 0] == texNumber
-				||  tmpMesh->mTextureNumber[loopVer + 1] == texNumber
-				||	 tmpMesh->mTextureNumber[loopVer + 2] == texNumber)
+				// Reserve the face setting
+				sModel->meshes[texNumber]->faces[faceIdx].material = texNumber;
+
+				// Reserve for each vertex
+				REP(verIdx, faces[faceIdx].size())
 				{
-					// Reserve the face setting
-					sModel->meshes[texNumber]->faces[nFaces].material = texNumber;
+					int index = faces[faceIdx].at(verIdx);
+					sModel->meshes[texNumber]->faces[faceIdx].index[verIdx] = index;
 
-					REP(id,3)
-					{
-						sModel->meshes[texNumber]->faces[nFaces].index[id] = nVertices;
+					sModel->meshes[texNumber]->vertices[index][0] = vertices[index].point.x;
+					sModel->meshes[texNumber]->vertices[index][1] = vertices[index].point.y;
+					sModel->meshes[texNumber]->vertices[index][2] = vertices[index].point.z;
 
-						sModel->meshes[texNumber]->vertices[nVertices][0] =
-								tmpMesh->mVertices[indices[nVertices]].point.x;
-						sModel->meshes[texNumber]->vertices[nVertices][1] =
-								tmpMesh->mVertices[indices[nVertices]].point.y;
-						sModel->meshes[texNumber]->vertices[nVertices][2] =
-								tmpMesh->mVertices[indices[nVertices]].point.z;
-
-						sModel->meshes[texNumber]->texcos[nVertices][0] =
-								(tmpMesh->mTextureCoords[indices[nVertices]].x
-										- tmpMesh->mTexMin.x) * ratio_x / (W_WIDTH / 2);
-						sModel->meshes[texNumber]->texcos[nVertices][1] = ((W_HEIGHT / 2
-								- (tmpMesh->mTextureCoords[indices[nVertices]].y
-										- tmpMesh->mTexMin.y) * ratio_y) - 1)
-								/ (W_HEIGHT / 2);
-
-						nVertices++;
-					}
-					nFaces++;
+					sModel->meshes[texNumber]->texcos[index][0] =
+							(vertices[index].tex_coord.x
+									- lscmMesh->mTexMin.x) * ratio_x / (W_WIDTH / 2);
+					sModel->meshes[texNumber]->texcos[index][1] = ((W_HEIGHT / 2
+							- (lscmMesh->mVertices[index].tex_coord.y
+									- lscmMesh->mTexMin.y) * ratio_y) - 1)
+							/ (W_HEIGHT / 2);
 				}
 			}
 		}
@@ -503,7 +516,7 @@ namespace TextureTransfer
 		lib3ds_file_save(sModel, saveName.str().c_str());
 
 		ostringstream com;
-		com << "mv " << saveName.str().c_str()
+		com << "cp " << saveName.str().c_str()
 				<< " LSCM_texture0.bmp LSCM_texture1.bmp ~/NewARDiorama/ARDiorama/ARMM/Data/rec/";
 		if (system(com.str().c_str())){
 
@@ -683,32 +696,46 @@ namespace TextureTransfer
 		//  cout << x << endl;
 	}
 
-	void ViewingModel::SetSelectedMeshData(const int& loopVer) {
+	void ViewingModel::SetSelectedMeshData(const int& loopVer)
+	{
+		Vector3 tmpVertex   = mLSCM->mMesh->mVertices[loopVer].point;
+		Vector2 tmpTexcoord = mLSCM->mMesh->mVertices[loopVer].tex_coord;
+		mSelectedMesh.second.add_vertex(tmpVertex, tmpTexcoord);
+		mSelectedMesh.second.mVertices.at(mSelectedMesh.second.mVertices.size()-1).id = loopVer;
+		mSelectedMesh.second.mVertices.at(mSelectedMesh.second.mVertices.size()-1).locked = false;
+		mSelectedMesh.second.mVertices.at(mSelectedMesh.second.mVertices.size()-1).harmonicValue
+				= mLSCM->mMesh->mVertices[loopVer].harmonicValue;
+
 		//vertex info
-		mSelectedMesh.second.vertex.push_back(
-				mLSCM->mMesh->mVertices[loopVer].point.x);
-		mSelectedMesh.second.vertex.push_back(
-				mLSCM->mMesh->mVertices[loopVer].point.y);
-		mSelectedMesh.second.vertex.push_back(
-				mLSCM->mMesh->mVertices[loopVer].point.z);
+//		mSelectedMesh.second.mVertices.push_back(
+//				mLSCM->mMesh->mVertices[loopVer].point.x);
+//		mSelectedMesh.second.vertex.push_back(
+//				mLSCM->mMesh->mVertices[loopVer].point.y);
+//		mSelectedMesh.second.vertex.push_back(
+//				mLSCM->mMesh->mVertices[loopVer].point.z);
 
-		//index info
-		mSelectedMesh.second.index.push_back(loopVer);
+	}
 
-		//texture info
-		Vector2 tex;
-		tex.x = mLSCM->mMesh->mVertices[loopVer].tex_coord.x;
-		tex.y = mLSCM->mMesh->mVertices[loopVer].tex_coord.y;
+	void ViewingModel::SetSelectedFaces(const int& loopFace)
+	{
+//		int index = mLSCM->mMesh->mTextureFaces.at(loopFace) - 1;
+//
+//		//index info
+//		mSelectedMesh.second.index.push_back(loopFace);
+//
+//		//texture info
+//		std::pair<int, Vector2> t;
+//		t.first = 0;
+//		t.second = mLSCM->mMesh->mTextureCoords[index];
+//		mSelectedMesh.second.mTextureCoords.push_back(t);
+		mSelectedMesh.second.add_vertex_to_facet(loopFace);
 
-		std::pair<int, Vector2> t;
-		t.first = 0;
-		t.second = tex;
-		mSelectedMesh.second.mTextureCoords.push_back(t);
 	}
 
 	void ViewingModel::CorrespondTexCoord(GLint *viewport, GLdouble *modelview,
-			GLdouble *projection, cv::Point2d pStart, cv::Point2d pEnd,
-			Vector2 & t1, Vector2 & t2, Vector3 & p1, Vector3 & p2) {
+												GLdouble *projection, cv::Point2d pStart, cv::Point2d pEnd,
+												Vector2 & t1, Vector2 & t2, Vector3 & p1, Vector3 & p2)
+	{
 		double winX, winY, winZ, objX, objY, objZ;
 
 		// ストロークの三次元位置から最も近い頂点を探すことにする
@@ -720,15 +747,12 @@ namespace TextureTransfer
 		//	REP(mesh,mMesh.size()){
 		cv::Point3d meshVertex;
 		double dist;
-		//	cout << "vertex ; " << im->vertex.size() << endl;
 
-		// for debug
-		//	cout << pStart.x << " " << pStart.y << endl;
-		//	cout << pEnd.x << " " << pEnd.y << endl;
+		//init selected mesh information
+		mSelectedMesh.second.clear();
 
-		mSelectedMesh.second.reset();
-
-		for (unsigned int loopVer = 0; loopVer < im->mVertices.size(); loopVer++) {
+		for (unsigned int loopVer = 0; loopVer < im->mVertices.size(); loopVer++)
+		{
 			meshVertex.x = im->mVertices[loopVer].point.x;
 			meshVertex.y = im->mVertices[loopVer].point.y;
 			meshVertex.z = im->mVertices[loopVer].point.z;
@@ -748,7 +772,8 @@ namespace TextureTransfer
 
 			// Judgement of pixel
 			dist = sqrt(pow((pStart.x - winX), 2) + pow((pStart.y - winY), 2));
-			if (minStartDist > dist) {
+			if (minStartDist > dist)
+			{
 				minStartDist = dist;
 				t1.x = im->mVertices[loopVer].tex_coord.x;
 				t1.y = im->mVertices[loopVer].tex_coord.y;
@@ -757,12 +782,13 @@ namespace TextureTransfer
 				p1.z = objZ;
 				ind1 = im->mVertices[loopVer].id;
 
-				//視点を選択したメッシュとする
+				//始点を選択したメッシュとする
 				mSelectedMesh.first = ind1;
 			}
 
 			dist = sqrt(pow((pEnd.x - winX), 2) + pow((pEnd.y - winY), 2));
-			if (minEndDist > dist) {
+			if (minEndDist > dist)
+			{
 				minEndDist = dist;
 				t2.x = im->mVertices[loopVer].tex_coord.x;
 				t2.y = im->mVertices[loopVer].tex_coord.y;
@@ -771,26 +797,43 @@ namespace TextureTransfer
 				p2.z = objZ;
 				ind2 = im->mVertices[loopVer].id;
 			}
-			//		cout << "Window = " << winX << "," << winY << endl;
 		}
-		//	}
-		//cout << "Strokes' indices : " << ind1 << "--" << ind2 << endl;
 
-		if (!mLSCM->mMesh->mTexParts.empty()) {
+		cout << "Clicked vertes index = " << mSelectedMesh.first << " : " << mLSCM->mMesh->mVertices[mSelectedMesh.first].harmonicValue << endl; //for debug
+
+		//whether harmonic field have been already calculated?
+//		if (!mLSCM->mMesh->mTexParts.empty())
+		if(true)
+		{
 			//		cout << "harmonic value=" << mLSCM->mesh_->mTexParts[ mSelectedMesh.first ] << endl;
-			double hVal =
-					mLSCM->mMesh->mTexParts[mSelectedMesh.first] >= 0.5 ? 0.5 : 0;
-			REP(loopVer,im->mVertices.size()) {
-				if (hVal) {
-					if (mLSCM->mMesh->mTexParts[loopVer] >= 0.5) {
-						SetSelectedMeshData(loopVer);
+			bool hVal = mLSCM->mMesh->mVertices[mSelectedMesh.first].harmonicValue >= 0.5 ? true : false;
+			REP(loopVer,im->mVertices.size())
+			{
+				SetSelectedMeshData(loopVer);
+			}
+
+			REP(loopFace, mLSCM->mMesh->mFaces.size())
+			{
+				//面の最初の頂点を対象に探索する
+				int index = mLSCM->mMesh->mFaces[loopFace].at(0);
+
+				if( (hVal && mLSCM->mMesh->mVertices[index].harmonicValue >= 0.5)
+				 || (!hVal && mLSCM->mMesh->mVertices[index].harmonicValue < 0.5) )
+				{
+//					mLSCM->mMesh->begin_facet();
+					Facet face;
+					REP(loopVer, mLSCM->mMesh->mFaces[loopFace].size())
+					{
+						int idx = mLSCM->mMesh->mFaces[loopFace].at(loopVer);
+//						SetSelectedFaces(loopFace);
+						face.push_back(idx);
+						mSelectedMesh.second.mVertices[idx].locked = true;
 					}
-				} else {
-					if (mLSCM->mMesh->mTexParts[loopVer] < 0.5) {
-						SetSelectedMeshData(loopVer);
-					}
+					mSelectedMesh.second.mFaces.push_back(face);
+//					mLSCM->mMesh->end_facet();
 				}
 			}
+			cout << "mSelectedMesh.second.mFaces >> " << mSelectedMesh.second.mFaces.size() << endl;
 		}
 	}
 
@@ -803,29 +846,16 @@ namespace TextureTransfer
 		//	REP(nMeshes, mLSCM.size()){
 		//
 		//	}
-
-		mLSCM->mMesh->mTexParts.clear();
-
-//		int sumIndices = 0;
 		REP(loopMesh,GetMeshSize())
 		{
 			REP(loopFace,GetMeshFacesSize(loopMesh))
 			{
-				REP(loopVer, GetMeshInnerFacesSize(loopMesh, loopFace)){
-					int index = mMesh[loopMesh]->mFaces[loopFace].at(loopVer);
-					double decomValue = static_cast<double>(mHarmonicValue[mMesh[loopMesh]->mVertices[index].allIndex]);
+				REP(loopVer, GetMeshInnerFacesSize(loopMesh, loopFace))
+				{
+					int verIdx = mMesh[loopMesh]->mFaces[loopFace].at(loopVer);
+					double decomValue = static_cast<double>(mHarmonicValue[mMesh[loopMesh]->mVertices[verIdx].allIndex]);
 
-					mLSCM->mMesh->mTexParts.push_back(decomValue);
-					//			// a texture coord is changed in the case of another part
-					//			if(decomValue <= 0.5 ){
-					//				cout << sumIndices + loopv*3<< endl;
-					//				REP(id,3){
-					//					mLSCM->mesh_->mTextureCoords[sumIndices + loopFace*3 + id].x += (mLSCM->mesh_->mTexMax.x - mLSCM->mesh_->mTexMin.x);
-					//					mLSCM->mesh_->mTextureCoords[sumIndices + loopFace*3 + id].y += (mLSCM->mesh_->mTexMax.y - mLSCM->mesh_->mTexMin.y);
-					//				}
-					//			}
-					//			cout << sumIndices + loopFace*3<< endl;
-
+					mLSCM->mMesh->mVertices[mMesh[loopMesh]->mVertices[verIdx].allIndex].harmonicValue = decomValue;
 				}
 			}
 		}
@@ -846,17 +876,30 @@ namespace TextureTransfer
 		cout << "Convert from 3DS to OBJ..." << endl;
 
 		//頂点情報の格納
+//		REP(loopMesh, mMesh.size())
+//		{
+//			REP(faceIdx, mMesh[loopMesh]->mFaces.size())
+//			{
+//				REP(vertexIdx, mMesh[loopMesh]->mFaces[faceIdx].size())
+//				{
+//					int index = mMesh[loopMesh]->mFaces[faceIdx].at(vertexIdx);
+//					mLSCM->mMesh->add_vertex(mMesh[loopMesh]->mVertices[index].point, Vector2(0,0));
+//					mLSCM->mMesh->mVertices[]
+//				}
+//			}
+//		}
 		REP(loopMesh, mMesh.size())
 		{
-			REP(faceIdx, mMesh[loopMesh]->mFaces.size())
+			REP(verIdx, mMesh[loopMesh]->mVertices.size())
 			{
-				REP(vertexIdx, mMesh[loopMesh]->mFaces[faceIdx].size())
-				{
-					int index = mMesh[loopMesh]->mFaces[faceIdx].at(vertexIdx);
-					mLSCM->mMesh->add_vertex(mMesh[loopMesh]->mVertices[index].point, Vector2(0,0));
-				}
+				mLSCM->mMesh->add_vertex(mMesh[loopMesh]->mVertices[verIdx].point, Vector2(0,0));
+				mLSCM->mMesh->mVertices[verIdx].textureNumber = loopMesh;
 			}
 		}
+
+//			}
+//
+//		}
 
 		int sumOfVertices = 0;
 		//面との連結情報の格納
@@ -872,9 +915,9 @@ namespace TextureTransfer
 				}
 				mLSCM->mMesh->end_facet();
 			}
-			sumOfVertices += mMesh[loopMesh]->ind_max;
+			sumOfVertices += mMesh[loopMesh]->mIdxMax;
 		}
-		mLSCM->mMesh = mMesh[0];
+//		mLSCM->mMesh = mMesh[0];
 		std::cout << "Converted : " << mLSCM->mMesh->mVertices.size()
 				<< " vertices and " << mLSCM->mMesh->mFaces.size() << " facets"
 				<< std::endl;

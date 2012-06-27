@@ -321,7 +321,8 @@ void mouse(int button, int state, int x, int y)
 		}
 
 		//button OFF
-		if(state == GLUT_UP && button == GLUT_LEFT_BUTTON){
+		if(state == GLUT_UP && button == GLUT_LEFT_BUTTON)
+		{
 
 			//get each matrix parameter
 //			SetMatrixParam();
@@ -441,11 +442,11 @@ void DrawModelMonitor(int x, int y, int w, int h, ViewingModel * model, bool isS
   glVertex3d(clickPoint[1].x, clickPoint[1].y, clickPoint[1].z);
   glEnd();
 #endif
-	glEnable(GL_LIGHT0);
-	glEnable(GL_LIGHTING);
-	glEnable(GL_COLOR_MATERIAL);
+//	glEnable(GL_LIGHT0);
+//	glEnable(GL_LIGHTING);
+//	glEnable(GL_COLOR_MATERIAL);
 
-	if(!false)
+	if(!displayTexture)
 	{
 		//  Rendering a model
 		glLineWidth(1);
@@ -465,7 +466,7 @@ void DrawModelMonitor(int x, int y, int w, int h, ViewingModel * model, bool isS
 			{
 				REP(verIdx, model->GetMeshInnerFacesSize(loopMesh,faceIdx))
 				{
-					ColorSetting( model->QueryVertexColor(loopMesh, faceIdx, verIdx) , false);
+					ColorSetting( model->QueryVertexColor(loopMesh, faceIdx, verIdx) , true);
 					model->QueryNormal(loopMesh, faceIdx, verIdx, normal);
 					model->QueryVertex(loopMesh, faceIdx, verIdx, vertex);
 	//				model->QueryAmbient(loop, id, ambient);
@@ -492,6 +493,9 @@ void DrawModelMonitor(int x, int y, int w, int h, ViewingModel * model, bool isS
 		IndexedMesh * tmpMesh = model->mLSCM->mMesh.get();
 
 		int isTriangles = 0;
+
+//		cout << "model->mTexture.size() -> " << model->mTexture.size() << endl;
+
 		REP(texNumber, model->mTexture.size())
 		{
 			//テクスチャセット
@@ -502,28 +506,43 @@ void DrawModelMonitor(int x, int y, int w, int h, ViewingModel * model, bool isS
 			double ratio_y = (W_HEIGHT*0.5 - 1) / (tmpMesh->mTexMax.y - tmpMesh->mTexMin.y);//
 
 			glBegin(GL_TRIANGLES);
-			for(unsigned int loopVer=0; loopVer<tmpMesh->mVertices.size(); loopVer++)
+			REP(loopFace, tmpMesh->mFaces.size())
 			{
-				glMaterialfv(GL_FRONT_AND_BACK, GL_AMBIENT, lit_amb);
-				glMaterialfv(GL_FRONT_AND_BACK, GL_DIFFUSE, lit_dif);
-				glMaterialfv(GL_FRONT_AND_BACK, GL_SPECULAR, lit_spc);
+				bool compose = false;
 
-				if( tmpMesh->mTextureNumber[loopVer] == texNumber || isTriangles > 0){
-					GLfloat texcos[2];
-					texcos[0] = (tmpMesh->mTextureCoords[loopVer].x - tmpMesh->mTexMin.x) * ratio_x;
-					texcos[1] = (W_HEIGHT/2 - (tmpMesh->mTextureCoords[loopVer].y - tmpMesh->mTexMin.y) * ratio_y) - 1;
-
-					GLdouble vertex[3];
-					vertex[0] = tmpMesh->mVertices[loopVer].point.x;
-					vertex[1] = tmpMesh->mVertices[loopVer].point.y;
-					vertex[2] = tmpMesh->mVertices[loopVer].point.z;
-					glColor3f(1.0f, 1.0f, 1.0f);
-					glTexCoord2fv(texcos);
-					glVertex3dv(vertex);
-
-					isTriangles++;
+				REP(loopVer, tmpMesh->mFaces[loopFace].size())
+				{
+					int verIndex = tmpMesh->mFaces[loopFace].at(loopVer);
+					int texIndex = verIndex;
+					if( tmpMesh->mVertices[verIndex].textureNumber == texNumber)
+					{
+						compose = true;
+					}
 				}
-				isTriangles %= 3;
+
+				if( !compose ) continue;
+
+				REP(loopVer, tmpMesh->mFaces[loopFace].size())
+				{
+					int verIndex = tmpMesh->mFaces[loopFace].at(loopVer);
+					int texIndex = verIndex;
+					glMaterialfv(GL_FRONT_AND_BACK, GL_AMBIENT, lit_amb);
+					glMaterialfv(GL_FRONT_AND_BACK, GL_DIFFUSE, lit_dif);
+					glMaterialfv(GL_FRONT_AND_BACK, GL_SPECULAR, lit_spc);
+					{
+						GLfloat texcos[2];
+						texcos[0] = (tmpMesh->mVertices[texIndex].tex_coord.x - tmpMesh->mTexMin.x) * ratio_x;
+						texcos[1] = (W_HEIGHT/2 - (tmpMesh->mVertices[texIndex].tex_coord.y - tmpMesh->mTexMin.y) * ratio_y)-1;
+
+						GLdouble vertex[3];
+						vertex[0] = tmpMesh->mVertices[verIndex].point.x;
+						vertex[1] = tmpMesh->mVertices[verIndex].point.y;
+						vertex[2] = tmpMesh->mVertices[verIndex].point.z;
+						glColor3f(1.0f, 1.0f, 1.0f);
+						glTexCoord2fv(texcos);
+						glVertex3dv(vertex);
+					}
+				}
 			}
 			glEnd();
 			model->mTexture[texNumber]->unbind();
@@ -564,11 +583,15 @@ void DrawModelMonitor(int x, int y, int w, int h, ViewingModel * model, bool isS
 
   //display a sentence if a mesh in the model have been selected
   if(model->IsMeshSelected()){
-	  glPushAttrib(GL_CURRENT_BIT|GL_DEPTH_BUFFER_BIT); // retrieve color and Z buffer
+	  // retrieve color and Z buffer
+	  glPushAttrib(GL_CURRENT_BIT|GL_DEPTH_BUFFER_BIT);
+
 	  glColor3d(1,0,1);
 	  void *letter = GLUT_BITMAP_TIMES_ROMAN_24;
 	  DrawString("SELECTED", letter, -10, -10, 0);
-	  glPopAttrib(); // write back color and Z buffer
+
+	  // write back color and Z buffer
+	  glPopAttrib();
 
   }
 
@@ -627,58 +650,73 @@ void DrawTextureMonitor(int x, int y, int w, int h, ViewingModel * model, const 
 
 	if( controllObject != SELECT)
 	{
-
-		int size = static_cast<int>(im->mTextureFaces.size());
-
-		for(int i=0; i<size; i+=3)
+		REP(faceIdx, im->mFaces.size() )
 		{
-			Vector2 tmp1 = im->mTextureCoords[ im->mTextureFaces.at(i) - 1];
-			Vector2 tmp2 = im->mTextureCoords[ im->mTextureFaces.at(i+1) - 1];
-			Vector2 tmp3 = im->mTextureCoords[ im->mTextureFaces.at(i+2) - 1];
+			REP(verIdx, im->mFaces[faceIdx].size())
+			{
+				Vector2 vertex;
+				int index = im->mFaces[faceIdx].at(verIdx);
+				vertex.x = im->mVertices[index].tex_coord.x;
+				vertex.y = im->mVertices[index].tex_coord.y;
 
-			double val = model->mLSCM->mMesh->mTexParts[i];
+				double val = model->mLSCM->mMesh->mVertices[index].harmonicValue;
+				ColorSetting(val, true);
 
-			ColorSetting(val, true);
+				glVertex2f(vertex.x, vertex.y);
+			}
+		}
 
-#if TEXTURE_TRIANGLES==0
-			glVertex2f(tmp1.x,tmp1.y);
-			glVertex2f(tmp2.x,tmp2.y);
-			glVertex2f(tmp2.x,tmp2.y);
-			glVertex2f(tmp3.x,tmp3.y);
-			glVertex2f(tmp3.x,tmp3.y);
-			glVertex2f(tmp1.x,tmp1.y);
-#else
-			glVertex2f(tmp1.x,tmp1.y);
-			glVertex2f(tmp2.x,tmp2.y);
-			glVertex2f(tmp3.x,tmp3.y);
-
-#endif
-	  }
+//		for(int i=0; i<size; i+=3)
+//		{
+//			Vector2 tmp1 = im->mTextureCoords[ im->mTextureFaces.at(i+0) - 1];
+//			Vector2 tmp2 = im->mTextureCoords[ im->mTextureFaces.at(i+1) - 1];
+//			Vector2 tmp3 = im->mTextureCoords[ im->mTextureFaces.at(i+2) - 1];
+//
+//			double val = model->mLSCM->mMesh->mTexParts[i];
+//			ColorSetting(val, true);
+//
+//#if TEXTURE_TRIANGLES==0
+//			glVertex2f(tmp1.x,tmp1.y);
+//			glVertex2f(tmp2.x,tmp2.y);
+//			glVertex2f(tmp2.x,tmp2.y);
+//			glVertex2f(tmp3.x,tmp3.y);
+//			glVertex2f(tmp3.x,tmp3.y);
+//			glVertex2f(tmp1.x,tmp1.y);
+//#else
+//			glVertex2f(tmp1.x,tmp1.y);
+//			glVertex2f(tmp2.x,tmp2.y);
+//			glVertex2f(tmp3.x,tmp3.y);
+//
+//#endif
+//	  }
   }
-  //in the case of selecting parts
+  //in case of selecting parts
   else
   {
-//	  glColor3d(0,1,0);
-	  for(unsigned int i=0; i<model->mSelectedMesh.second.mTextureCoords.size(); i+=3)
+	  assert(model->mLSCM->mMesh->mVertices.size() == model->mLSCM->mMesh->mTextureCoords.size());
+	  REP(faceIdx, model->mSelectedMesh.second.mFaces.size())
 	  {
-			Vector2 tmp1 = model->mSelectedMesh.second.mTextureCoords[i+0].second;
-			Vector2 tmp2 = model->mSelectedMesh.second.mTextureCoords[i+1].second;
-			Vector2 tmp3 = model->mSelectedMesh.second.mTextureCoords[i+2].second;
+//	  for(unsigned int i=0; i<model->mSelectedMesh.second.mTextureCoords.size(); i+=3)
+//	  {
+			Vector2 tmp[3];
+			REP(i,3){
+				tmp[i] = model->mSelectedMesh.second.mVertices[ model->mSelectedMesh.second.mFaces[faceIdx].at(i) ].tex_coord;
+			}
 
-			double value = model->mLSCM->mMesh->mTexParts[model->mSelectedMesh.second.index[i]];
+			double value = model->mLSCM->mMesh->mVertices[model->mSelectedMesh.second.mFaces[faceIdx].at(0)].harmonicValue;
 			ColorSetting(value, true);
 
 #if TEXTURE_TRIANGLES==0
-			glVertex2f(tmp1.x,tmp1.y);
-			glVertex2f(tmp2.x,tmp2.y);
-			glVertex2f(tmp2.x,tmp2.y);
-			glVertex2f(tmp3.x,tmp3.y);
-			glVertex2f(tmp3.x,tmp3.y);
-			glVertex2f(tmp1.x,tmp1.y);
+			glVertex2f(tmp[0].x,tmp[0].y);
+			glVertex2f(tmp[1].x,tmp[1].y);
+			glVertex2f(tmp[1].x,tmp[1].y);
+			glVertex2f(tmp[2].x,tmp[2].y);
+			glVertex2f(tmp[2].x,tmp[2].y);
+			glVertex2f(tmp[0].x,tmp[0].y);
 #else
-			glVertex2f(tmp1.x,tmp1.y);
-			glVertex2f(tmp2.x,tmp2.y);
-			glVertex2f(tmp3.x,tmp3.y);
+			glVertex2f(tmp[0].x,tmp[0].y);
+			glVertex2f(tmp[1].x,tmp[1].y);
+			glVertex2f(tmp[2].x,tmp[2].y);
 
 #endif
 	  }
@@ -716,20 +754,27 @@ void PointsDisplay()
 
 	controller.mMeshes[manupulation-1].clear();
 	assert(input);
-    for(unsigned int i=0; i<models[manupulation-1]->mSelectedMesh.second.mTextureCoords.size(); i++){
-		Vector2 tmp1 = models[manupulation-1]->mSelectedMesh.second.mTextureCoords[i].second;
+    REP(i,models[manupulation-1]->mSelectedMesh.second.mVertices.size())
+    {
+    	//実際に使われているvertexかどうか
+    	if( !models[manupulation-1]->mSelectedMesh.second.mVertices[i].locked ) continue;
+
+		Vector2 tmp1 = models[manupulation-1]->mSelectedMesh.second.mVertices[i].tex_coord;
+
 		cv::Point tmp;
+		pair<int , cv::Point > tmpPair;
+
 		tmp.x = (tmp1.x - tmpMesh->mTexMin.x) * ratio_x;
 		tmp.y = (input->height - (tmp1.y - tmpMesh->mTexMin.y) * ratio_y) - 1;
-		pair<int , cv::Point > tmpPair;
-		tmpPair.first  = models[manupulation-1]->mSelectedMesh.second.index[i];
+		tmpPair.first  = models[manupulation-1]->mSelectedMesh.second.mVertices[i].id;
 		tmpPair.second = tmp;
+
 		controller.mMeshes[manupulation-1].push_back(tmpPair);
 #if VISUALIZE == 1
 		cvCircle( src, tmp, 2, CV_RGB( 255, 255, 0 ), CV_FILLED );
 #endif
 //		cout << "Model" << manupulation-1 << " Index=" << tmpPair.first << " ; HarmonicVal=" << models[manupulation-1]->mLSCM->mMesh->mTexParts[tmpPair.first] << endl;
-		controller.SetHashmap( tmp.x, tmp.y, tmpPair.first, manupulation-1);
+//		controller.SetHashmap( tmp.x, tmp.y, tmpPair.first, manupulation-1);
 	}
 
 
@@ -753,7 +798,9 @@ void TexturePaste(bool color)
 		cvZero(src);
 #endif
 
-		REP(id,controller.mMatchingPoints.size()){
+		//色情報のTransfer
+		//対応点の色情報を移し替える
+//		REP(id,controller.mMatchingPoints.size()){
 			// should use to transfer color field
 //			int idModel0 = controller.GetHashmap((int)controller.mMatchingPoints[id].first.x, (int)controller.mMatchingPoints[id].first.y, 0);
 //			int idModel1 = controller.GetHashmap((int)controller.mMatchingPoints[id].second.x, (int)controller.mMatchingPoints[id].second.y, 1);
@@ -766,11 +813,11 @@ void TexturePaste(bool color)
 #if FEEDBACK_VISUALIZE == 1
 			cvCircle( src, cvPoint((int)controller.mMatchingPoints[id].first.x, (int)controller.mMatchingPoints[id].first.y), 2, CV_RGB( 255, 255, 0 ), CV_FILLED );
 #endif
-		}
+//		}
 
 		REP(id, controller.mMeshes[1].size()){
 			//テクスチャ画像番号を更新
-			models[1]->mLSCM->mMesh->mTextureNumber[controller.mMeshes[1].at(id).first] = 1;//models[1]->mTexture.size();
+			models[1]->mLSCM->mMesh->mVertices[controller.mMeshes[1].at(id).first].textureNumber = 1;
 		}
 
 		::ImageType TextureRGB = (CVD::img_load("warping1.bmp"));
@@ -827,7 +874,7 @@ void Init()
 	models[0]->mLSCM->mMesh->save("Model3DS/test2.obj");
 	models[0]->mLSCM->mMesh->FindTextureMax();
 //
-	models[1]->LoadTexture("Hatsune2.bmp");
+	models[1]->LoadTexture("texture2.bmp");
 	models[1]->ConvertDataStructure();
 	models[1]->mLSCM->run("CG","");
 	models[1]->mLSCM->mMesh->save("Model3DS/voxel3.obj");

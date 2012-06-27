@@ -68,6 +68,8 @@ namespace TextureTransfer
 		bool    locked ;
 		int     id ;
 		int		 allIndex;
+		double	 harmonicValue;
+		int		 textureNumber; //to indicate corresponding texture image number
 	};
 
 	class Facet : public std::vector<int> {

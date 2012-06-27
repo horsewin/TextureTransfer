@@ -49,8 +49,6 @@ namespace TextureTransfer
 	{
 		mVertices.clear();
 		mFaces.clear();
-		mTextureCoords.clear();
-		mTexParts.clear();
 		mTextureFaces.clear();
 	}
 
@@ -61,15 +59,16 @@ namespace TextureTransfer
 
 	void IndexedMesh::FindTextureMax()
 	{
-	  uint size = mTextureFaces.size();
+	  uint size = mVertices.size();
 
 	  mTexMax.x = -9999;
 	  mTexMax.y = -9999;
 	  mTexMin.x = 9999;
 	  mTexMin.y = 9999;
 
-	  for(uint i=0; i<size; i++){
-		Vector2 tmp1 = mTextureCoords[ mTextureFaces.at(i) - 1];
+	  for(uint i=0; i<size; i++)
+	  {
+		Vector2 tmp1 = mVertices[i].tex_coord;
 		if( tmp1.x < mTexMin.x) mTexMin.x = tmp1.x;
 		if( tmp1.y < mTexMin.y) mTexMin.y = tmp1.y;
 		if( tmp1.x > mTexMax.x) mTexMax.x = tmp1.x;
@@ -111,35 +110,40 @@ namespace TextureTransfer
 	  mFaces.rbegin()->push_back(i) ;
 	}
 
-	void IndexedMesh::clear() {
-	  mVertices.clear() ;
-	  mFaces.clear() ;
+	void IndexedMesh::clear()
+	{
+
+		mIdxMax = 0;
+		mNumIndex = 0;
+
+		mVertices.clear() ;
+		mFaces.clear() ;
+		mTextureFaces.clear();
 	}
 
 	void IndexedMesh::save(const std::string& file_name)
 	{
+	  unsigned int i,j ;
 	  std::ofstream out(file_name.c_str()) ;
 
-	  mTextureCoords.clear();
 	  mTextureFaces.clear();
 
-	  for(int i=0; i<mVertices.size(); i++) {
+	  for(i=0; i<mVertices.size(); i++) {
 		out << "v " << mVertices[i].point << std::endl ;
 	  }
-	  for(int i=0; i<mVertices.size(); i++) {
+	  for(i=0; i<mVertices.size(); i++) {
 		out << "vt " << mVertices[i].tex_coord << std::endl ;
-		mTextureCoords.push_back(mVertices[i].tex_coord);
 	  }
-	  for(int i=0; i<mFaces.size(); i++) {
+	  for(i=0; i<mFaces.size(); i++) {
 		out << "f " ;
 		const Facet& F = mFaces[i] ;
-		for(int j=0; j<F.size(); j++) {
+		for(j=0; j<F.size(); j++) {
 		  out << (F[j] + 1) << "/" << (F[j] + 1) << " " ;
-		  mTextureFaces.push_back(F[j]+1);
+//		  mTextureFaces.push_back(F[j]+1);
 		}
 		out << std::endl ;
 	  }
-	  for(int i=0; i<mVertices.size(); i++) {
+	  for(i=0; i<mVertices.size(); i++) {
 		if(mVertices[i].locked) {
 		  out << "# anchor " << i+1 << std::endl ;
 		}

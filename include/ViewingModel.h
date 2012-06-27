@@ -91,13 +91,9 @@ namespace TextureTransfer
 	  int GetMeshFlag(const int & outer_loop) const;
 	  void IncrementSumOfStrokes();
 
-		bool IsMeshSelected() const {
-			return mMeshSelected;
-		}
+	  bool IsMeshSelected() const { return mMeshSelected; }
 
-		void SetMeshSelected(bool meshSelected) {
-			mMeshSelected = meshSelected;
-		}
+		void SetMeshSelected(bool meshSelected) { mMeshSelected = meshSelected; }
 
 	 private:
 	  void Load3DModel();
@@ -109,18 +105,19 @@ namespace TextureTransfer
 	  std::deque<Texture *> LoadTextures(::Lib3dsFile * pModel, std::string dirpath);
 
 	  void SetSelectedMeshData(const int& loopVer);
+	  void SetSelectedFaces(const int& loopTex);
 
 	 public:
 	//  std::vector<boost::shared_ptr<LSCM>> mLSCM;
 	  boost::shared_ptr<LSCM> mLSCM;
 
-	  std::vector<Texture*> mTexture;
+	  std::vector<Texture*> mTexture;			// A set of Textures 2011.6.7
 
-	  float mScales;
+	  std::pair<int,IndexedMesh> mSelectedMesh; //first : an index for the matrix having harmonic field(mTexparts), second: a set of meshes
+
+	  float  mScales;
 	  double mAngles[3];
 	  double mTrans[3];
-	//  std::deque<Texture *> texturesList; // A set of Textures 2011.6.7
-	  std::pair<int,Mesh> mSelectedMesh; //first : an index for the matrix having harmonic field(mTexparts), second: a set of meshes
 
 	 private:
 
@@ -133,7 +130,7 @@ namespace TextureTransfer
 	  std::vector< boost::shared_ptr<IndexedMesh> > mMesh;
 
 	  Eigen::SparseMatrix<double> sparse_laplacian;
-	  Eigen::VectorXd b,mHarmonicValue;
+	  Eigen::VectorXd b, mHarmonicValue;
 
 	  bool mIsConvert;
 	  bool mIsLoadMatrix;
