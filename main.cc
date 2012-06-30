@@ -243,6 +243,20 @@ void keyboard(unsigned char key, int x, int y)
 			controller.AcquireMatching();
 			TexturePaste(true);
 			models[1]->Save3DModel("NewModel");
+
+			IndexedMesh * lscmMesh = models[1]->mLSCM->mMesh.get();
+			REP(verIdx, lscmMesh->mVertices.size())
+			{
+				//for warping texture mapping to size (W_WIDTH/2, W_HEIGHT/2)
+				double ratio_x = (W_WIDTH*0.5 -  0) / (lscmMesh->mTexMax.x - lscmMesh->mTexMin.x);
+				double ratio_y = (W_HEIGHT*0.5 - 0) / (lscmMesh->mTexMax.y - lscmMesh->mTexMin.y);//
+
+				GLfloat texcos[2];
+				//TEXTURE_ARBを用いているためu-v座標を0-1にしなくてもよい
+				texcos[0] = (lscmMesh->mVertices[verIdx].tex_coord.x - lscmMesh->mTexMin.x) * ratio_x;
+				texcos[1] = (W_HEIGHT/2 - (lscmMesh->mVertices[verIdx].tex_coord.y - lscmMesh->mTexMin.y) * ratio_y) - 0;
+				cout << lscmMesh->mVertices[verIdx].textureNumber << " + " << texcos[0] << "," << texcos[1] << endl;
+			}
 		}
     	break;
   }	
@@ -490,9 +504,7 @@ void DrawModelMonitor(int x, int y, int w, int h, ViewingModel * model, bool isS
 	}
 	else
 	{
-		IndexedMesh * tmpMesh = model->mLSCM->mMesh.get();
-
-		int isTriangles = 0;
+		IndexedMesh * lscmMesh = model->mLSCM->mMesh.get();
 
 //		cout << "model->mTexture.size() -> " << model->mTexture.size() << endl;
 
@@ -501,43 +513,44 @@ void DrawModelMonitor(int x, int y, int w, int h, ViewingModel * model, bool isS
 			//テクスチャセット
 			model->mTexture[texNumber]->bind();
 
-			//for warping texture mapping
-			double ratio_x = (W_WIDTH*0.5 -  1) / (tmpMesh->mTexMax.x - tmpMesh->mTexMin.x);
-			double ratio_y = (W_HEIGHT*0.5 - 1) / (tmpMesh->mTexMax.y - tmpMesh->mTexMin.y);//
+			//for warping texture mapping to size (W_WIDTH/2, W_HEIGHT/2)
+			double ratio_x = (W_WIDTH*0.5 -  0) / (lscmMesh->mTexMax.x - lscmMesh->mTexMin.x);
+			double ratio_y = (W_HEIGHT*0.5 - 0) / (lscmMesh->mTexMax.y - lscmMesh->mTexMin.y);//
 
 			glBegin(GL_TRIANGLES);
-			REP(loopFace, tmpMesh->mFaces.size())
+			REP(loopFace, lscmMesh->mFaces.size())
 			{
+				//対象の面を構成する頂点が同一のテクスチャ画像を参照しているかチェック
 				bool compose = false;
 
-				REP(loopVer, tmpMesh->mFaces[loopFace].size())
+				REP(loopVer, lscmMesh->mFaces[loopFace].size())
 				{
-					int verIndex = tmpMesh->mFaces[loopFace].at(loopVer);
-					int texIndex = verIndex;
-					if( tmpMesh->mVertices[verIndex].textureNumber == texNumber)
+					int verIndex = lscmMesh->mFaces[loopFace].at(loopVer);
+					if( lscmMesh->mVertices[verIndex].textureNumber == texNumber)
 					{
 						compose = true;
+						break;
 					}
 				}
 
 				if( !compose ) continue;
 
-				REP(loopVer, tmpMesh->mFaces[loopFace].size())
+				REP(loopVer, lscmMesh->mFaces[loopFace].size())
 				{
-					int verIndex = tmpMesh->mFaces[loopFace].at(loopVer);
+					int verIndex = lscmMesh->mFaces[loopFace].at(loopVer);
 					int texIndex = verIndex;
 					glMaterialfv(GL_FRONT_AND_BACK, GL_AMBIENT, lit_amb);
 					glMaterialfv(GL_FRONT_AND_BACK, GL_DIFFUSE, lit_dif);
 					glMaterialfv(GL_FRONT_AND_BACK, GL_SPECULAR, lit_spc);
 					{
 						GLfloat texcos[2];
-						texcos[0] = (tmpMesh->mVertices[texIndex].tex_coord.x - tmpMesh->mTexMin.x) * ratio_x;
-						texcos[1] = (W_HEIGHT/2 - (tmpMesh->mVertices[texIndex].tex_coord.y - tmpMesh->mTexMin.y) * ratio_y)-1;
-
+						//TEXTURE_ARBを用いているためu-v座標を0-1にしなくてもよい
+						texcos[0] = (lscmMesh->mVertices[texIndex].tex_coord.x - lscmMesh->mTexMin.x) * ratio_x;
+						texcos[1] = (W_HEIGHT/2 - (lscmMesh->mVertices[texIndex].tex_coord.y - lscmMesh->mTexMin.y) * ratio_y) - 0;
 						GLdouble vertex[3];
-						vertex[0] = tmpMesh->mVertices[verIndex].point.x;
-						vertex[1] = tmpMesh->mVertices[verIndex].point.y;
-						vertex[2] = tmpMesh->mVertices[verIndex].point.z;
+						vertex[0] = lscmMesh->mVertices[verIndex].point.x;
+						vertex[1] = lscmMesh->mVertices[verIndex].point.y;
+						vertex[2] = lscmMesh->mVertices[verIndex].point.z;
 						glColor3f(1.0f, 1.0f, 1.0f);
 						glTexCoord2fv(texcos);
 						glVertex3dv(vertex);
@@ -659,7 +672,7 @@ void DrawTextureMonitor(int x, int y, int w, int h, ViewingModel * model, const 
 				vertex.x = im->mVertices[index].tex_coord.x;
 				vertex.y = im->mVertices[index].tex_coord.y;
 
-				double val = model->mLSCM->mMesh->mVertices[index].harmonicValue;
+				double val = im->mVertices[index].harmonicValue;
 				ColorSetting(val, true);
 
 				glVertex2f(vertex.x, vertex.y);
@@ -825,6 +838,7 @@ void TexturePaste(bool color)
 
 		models[1]->mTexture.push_back(tmpTexture);
 
+		cout << tmpTexture->getWidth() << "," << tmpTexture->getHeight() << endl;
 		cout << "Texture Transfer DONE!! Left -> Right" << endl;
 
 		//reset selected mesh
@@ -867,6 +881,7 @@ void Init()
 	models[0] = new ViewingModel(model1Name);
 	models[1] = new ViewingModel(model2Name);
 	manupulation = 1;
+
 
 	models[0]->LoadTexture("texture1.bmp");
 	models[0]->ConvertDataStructure();

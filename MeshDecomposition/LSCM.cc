@@ -210,7 +210,8 @@ namespace TextureTransfer
 	  setup_lscm() ;
 	  nlEnd(NL_MATRIX) ;
 	  nlEnd(NL_SYSTEM) ;
-	//  std::cout << "Solving ..." << std::endl ;
+	  std::cout << "Vertex(" << mMesh->mVertices.size() << ") Face(" <<
+			  mMesh->mFaces.size() << ") Solving ..." << std::endl ;
 	  nlSolve() ;
 	  solver_to_mesh() ;
 	  double time ;

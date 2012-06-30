@@ -112,8 +112,6 @@ namespace TextureTransfer
 
 	void IndexedMesh::clear()
 	{
-
-		mIdxMax = 0;
 		mNumIndex = 0;
 
 		mVertices.clear() ;

@@ -42,7 +42,6 @@ namespace TextureTransfer
 
 	  Vector2 mTexMax, mTexMin;
 	  unsigned int mNumIndex;
-	  int mIdxMax;
 	};
 
 }
