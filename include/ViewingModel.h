@@ -71,7 +71,6 @@ namespace TextureTransfer
 	  void Save3DModel(const char * filename);
 
 	  bool LoadTexture(const char * filename);
-	  void ConvertDataStructure();
 	  bool CheckFittingVertices(GLint *viewport, GLdouble *modelview, GLdouble *projection, cv::Point2d start_point, cv::Point2d end_point);
 	  void UpdateMatrix();
 	  void CorrespondTexCoord(GLint *viewport, GLdouble *modelview, GLdouble *projection,
@@ -93,12 +92,14 @@ namespace TextureTransfer
 
 	  bool IsMeshSelected() const { return mMeshSelected; }
 
-		void SetMeshSelected(bool meshSelected) { mMeshSelected = meshSelected; }
+	  void SetMeshSelected(bool meshSelected) { mMeshSelected = meshSelected; }
 
 	 private:
 	  void Load3DModel();
 	  void VertexCorrection();
-	  bool LoadMatrix();
+	  void ConvertDataStructure();
+	  bool LoadMatrixFrom3ds();
+	  bool LoadMatrixFromObj();
 
 	  void Load3DSModel();
 	  void LoadObjModel();

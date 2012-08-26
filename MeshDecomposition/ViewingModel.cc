@@ -36,6 +36,9 @@
 const int weight = 1000;
 
 #define OVERLAID 1
+#define FILE_WRITE 1
+
+//#define DEBUG_TEXTURE_COORD
 //---------------------------------------------------------------------------
 // Global
 //---------------------------------------------------------------------------
@@ -134,22 +137,40 @@ namespace TextureTransfer
 		return true;
 	}
 
-	void ViewingModel::Load3DModel() {
+	void ViewingModel::Load3DModel()
+	{
 		char *dot;
 
 		//check whether .3ds, .obj or others
 		dot = strrchr(mModelname, '.');
 
-		if (!strcmp(dot, ".3ds") || !strcmp(dot, ".3DS")) {
+		if (!strcmp(dot, ".3ds") || !strcmp(dot, ".3DS"))
+		{
 			Load3DSModel();
-			mIsLoadMatrix = LoadMatrix();
-		} else if (!strcmp(dot, ".obj") || !strcmp(dot, ".OBJ")) {
+
+			//convert to OBJ file format
+			ConvertDataStructure();
+		}
+		else if (!strcmp(dot, ".obj") || !strcmp(dot, ".OBJ"))
+		{
 			LoadObjModel();
-			mIsLoadMatrix = LoadMatrix();
-		} else {
+		}
+		else
+		{
 			cerr << "Not supported 3DS file format : " << dot << endl;
 			return;
 		}
+
+		REP(id,mMesh.size())
+		{
+			//indexは0からはじまるので頂点数は+1される
+			mSumOfVertices += mMesh[id]->mVertices.size();
+		}
+
+		cout << "Mesh(" << mMesh.size() << ") SUM OF VERTICES:" << mSumOfVertices << endl;
+
+		mIsLoadMatrix = LoadMatrixFromObj();
+
 	}
 
 	void ViewingModel::Load3DSModel(void)
@@ -184,10 +205,11 @@ namespace TextureTransfer
 	//		mMesh[0].diffuse.push_back(tmpDiffuse);
 	//		mMesh[0].specular.push_back(tmpSpecular);
 		}
-
+		int nface = 0;
 		REP(loop,m_model->nmeshes)
 		{
 			mesh = m_model->meshes[loop]; //mLoop番目のメッシュへのポインタ
+			nface += mesh->nfaces;
 			if (mesh->nfaces == 0)
 			{
 				mMesh[loop]->mNumIndex = 0;
@@ -211,7 +233,7 @@ namespace TextureTransfer
 			}
 
 			//面データに対応する頂点情報を格納
-			for (int loopFace = 0; loopFace < mesh->nfaces; ++loopFace)
+			REP(loopFace, mesh->nfaces)
 			{
 				mMesh[loop]->begin_facet();
 				//reserve vertex information
@@ -249,9 +271,21 @@ namespace TextureTransfer
 
 			delete[] normal;
 		}
+//		cout << "The number of mesh is " << nface << endl;
 
 		//release the pointer having 3DS information
 		lib3ds_file_free(m_model);
+
+#if FILE_WRITE == 1
+		  std::ofstream out("debug_3ds.txt") ;
+		  REP(verIdx,mMesh[0]->mVertices.size()){
+			  out << "v "
+				<< mMesh[0]->mVertices[verIdx].point.x << "\t"
+				<< mMesh[0]->mVertices[verIdx].point.y << "\t"
+				<< mMesh[0]->mVertices[verIdx].point.z << "\t"
+				<< std::endl ;
+		  }
+#endif
 	}
 
 	void ViewingModel::LoadObjModel(void)
@@ -478,7 +512,9 @@ namespace TextureTransfer
 						(vertices[index].tex_coord.x - lscmMesh->mTexMin.x) * ratio_x / img_width;;
 				sModel->meshes[texNumber]->texcos[index][1] =
 						((img_height - (vertices[index].tex_coord.y - lscmMesh->mTexMin.y) * ratio_y) - 0) / img_height;
+#if DEBUG_TEXTURE_COORD
 				cout << sModel->meshes[texNumber]->texcos[index][0] << "," << sModel->meshes[texNumber]->texcos[index][1] << endl;
+#endif
 			}
 
 			//面情報の保存
@@ -559,17 +595,9 @@ namespace TextureTransfer
 		//	}
 	}
 
-	bool ViewingModel::LoadMatrix(void) {
+	bool ViewingModel::LoadMatrixFrom3ds(void) {
 		char load_file_name[100];
 		sprintf(load_file_name, "%s.txt", mModelname);
-
-		REP(id,mMesh.size())
-		{
-			//indexは0からはじまるので頂点数は+1される
-			mSumOfVertices += mMesh[id]->mVertices.size();
-		}
-
-		cout << "Mesh(" << mMesh.size() << ") SUM OF VERTICES:" << mSumOfVertices << endl;
 
 		// Create frequency matrix
 		// Create adjacent matrix
@@ -627,6 +655,66 @@ namespace TextureTransfer
 		return true;
 	}
 
+	bool ViewingModel::LoadMatrixFromObj(void)
+	{
+		char load_file_name[100];
+		sprintf(load_file_name, "%s.txt", mModelname);
+
+		// Create frequency matrix
+		// Create adjacent matrix
+		ublas::mapped_matrix<int> mat_frequency(mSumOfVertices, mSumOfVertices);
+		ublas::mapped_matrix<int> mat_adjacent(mSumOfVertices, mSumOfVertices);
+
+		IndexedMesh * lscmMesh = mLSCM->mMesh.get();
+
+		REP(loopFace, lscmMesh->mFaces.size())
+		{
+			assert(lscmMesh->mFaces[loopFace].size() == 3);
+
+			int ind1 = lscmMesh->mFaces[loopFace].at(0);
+			int ind2 = lscmMesh->mFaces[loopFace].at(1);
+			int ind3 = lscmMesh->mFaces[loopFace].at(2);
+
+			// Set frequency value
+			SetFrequencyValue(ind1, ind2, ind3, mat_adjacent, mat_frequency);
+
+			// Set adjacent value <TODO> cotangent matrixにすること
+			SetAdjacentValue(ind1, ind2, ind3, mat_adjacent);
+		}
+
+		ublas::matrix<int> mat_laplacian(mSumOfVertices, mSumOfVertices);
+		mat_laplacian = mat_frequency - mat_adjacent;
+
+		SparseMatrix<double> tmp_laplacian(mSumOfVertices, mSumOfVertices);
+		//  SparseMatrix<double> sparse_laplacian_t(sum_of_vertex,sum_of_vertex);
+		tmp_laplacian.reserve(mSumOfVertices * 20);
+		REP(i,mSumOfVertices) {
+			REP(j,mSumOfVertices) {
+				if (mat_laplacian(i, j) != 0) {
+					tmp_laplacian.insert(i, j) = mat_laplacian(i, j);
+				}
+			}
+		}
+		tmp_laplacian.finalize();
+
+		// set calculated sparse laplacian
+		sparse_laplacian = SparseMatrix<double>(tmp_laplacian.transpose())
+				* tmp_laplacian;
+
+		//   // save laplacian matrix as text data
+		//   cout << "Save : matrix data..." << endl;
+		// //   g_mat_loader.SetSumVertices(sum_of_vertex);
+		// //   char save_file_name[100];
+		// //   sprintf(save_file_name,"%s.txt",modelname);
+		// //   g_mat_loader.SaveMatrixFile(&save_file_name[0], sparse_laplacian);
+
+		//   // init Poisson parameter
+		b = VectorXd::Zero(mSumOfVertices);
+		mHarmonicValue = VectorXd::Zero(mSumOfVertices);
+
+		return true;
+	}
+
 	// refer to paper equation(2)
 	// "Mesh Decomposition with Cross-Boundary Brushes"
 	void ViewingModel::UpdateMatrix() {
@@ -650,8 +738,12 @@ namespace TextureTransfer
 
 		int * hash_table = new int[mSumOfVertices];
 		REP(i,mSumOfVertices)
+		{
 			hash_table[i] = 0;
-		REP(i,mSumOfStrokes) {
+		}
+
+		REP(i,mSumOfStrokes)
+		{
 			//     cout << "start ind:" << min_start_ind[i]<<endl;
 			//     cout << "end ind:" << min_end_ind[i]<<endl;
 			if (hash_table[mMinStartIndex[i]] == 0) {
@@ -663,10 +755,13 @@ namespace TextureTransfer
 				hash_table[mMinEndIndex[i]] = 1;
 			}
 		}
+
 		delete hash_table;
+
 		//  cout << Q << endl;
 		// set rhs value
-		REP(i,mSumOfStrokes) {
+		REP(i,mSumOfStrokes)
+		{
 			b[mMinStartIndex[i]] = weight * weight; // estimatable vector value
 		}
 
@@ -879,6 +974,9 @@ namespace TextureTransfer
 	 */
 	void ViewingModel::ConvertDataStructure()
 	{
+#if FILE_WRITE == 1
+		  std::ofstream out("debug.txt") ;
+#endif
 		//already converted?
 		if (mIsConvert){
 			return;
@@ -905,7 +1003,13 @@ namespace TextureTransfer
 			REP(verIdx, mMesh[loopMesh]->mVertices.size())
 			{
 				mLSCM->mMesh->add_vertex(mMesh[loopMesh]->mVertices[verIdx].point, Vector2(0,0));
-
+#if FILE_WRITE == 1
+				out << "v "
+						<< mLSCM->mMesh->mVertices[verIdx].point.x << "\t"
+						<< mLSCM->mMesh->mVertices[verIdx].point.y << "\t"
+						<< mLSCM->mMesh->mVertices[verIdx].point.z << "\t"
+						<< std::endl ;
+#endif
 				//init texture number information
 				mLSCM->mMesh->mVertices[verIdx].textureNumber = loopMesh;
 
@@ -1069,10 +1173,6 @@ namespace TextureTransfer
 			return false;
 		}
 
-		//  const char * solver = "CG";
-		//  mLSCM->run(solver, " ");
-		//  lscm->mesh_->save("test.obj");
-
 		return true;
 	}
 
@@ -1091,11 +1191,11 @@ namespace TextureTransfer
 	 * @name : model name for loading
 	 */
 	ViewingModel::ViewingModel(const char * name)
-	: mScales(5.0), mModelname(name), mSumOfVertices(0), mSumOfStrokes(0),  mIsConvert(false), mIsLoadMatrix(false),
+	: mScales(5.0), mSumOfVertices(0), mSumOfStrokes(0),  mIsConvert(false), mIsLoadMatrix(false),
 	  mHasTexture(false), mMeshSelected(false)
 	{
-		//		memcpy(mModelname, name, strlen(name));
-		//		strcpy(mModelname, name);
+		mModelname = new char[strlen(name)];
+		strcpy(mModelname, name);
 
 		REP(i,3) {
 			mTrans[i] = 0.0;
@@ -1116,6 +1216,5 @@ namespace TextureTransfer
 	 *
 	 */
 	ViewingModel::~ViewingModel() {
-		//  delete mLSCM;
 	}
 }
