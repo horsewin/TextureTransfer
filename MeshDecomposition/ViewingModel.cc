@@ -88,7 +88,7 @@ namespace {
 namespace TextureTransfer
 {
 	bool ViewingModel::CheckFittingVertices(GLint *viewport, GLdouble *modelview,
-			GLdouble *projection, cv::Point2d start_point, cv::Point2d end_point)
+			GLdouble *projection, cv::Point3d start_point, cv::Point3d end_point, bool glMouse)
 	{
 		double winX, winY, winZ, objX, objY, objZ;
 
@@ -101,37 +101,79 @@ namespace TextureTransfer
 		mMinStartIndex.push_back(0);
 		mMinEndIndex.push_back(0);
 
-		REP(mesh,mMesh.size()) {
-			Vector3 mesh_vertex;
-			double dist;
-			for (unsigned int loopVer = 0; loopVer < mMesh[mesh]->mVertices.size(); loopVer++)
-			{
-				mesh_vertex = mMesh[mesh]->mVertices[loopVer].point;
-				objX = mesh_vertex.x;
-				objY = mesh_vertex.y;
-				objZ = mesh_vertex.z;
+		//OpenGL上でマウス入力した値を使う場合(for test)
+		if(glMouse)
+		{
+			REP(mesh,mMesh.size()) {
+				Vector3 mesh_vertex;
+				double dist;
+				for (unsigned int loopVer = 0; loopVer < mMesh[mesh]->mVertices.size(); loopVer++)
+				{
+					//temporary variable to store the vertex pos to input simply
+					mesh_vertex = mMesh[mesh]->mVertices[loopVer].point;
+					objX = mesh_vertex.x;
+					objY = mesh_vertex.y;
+					objZ = mesh_vertex.z;
 
-				gluProject(objX, objY, objZ, modelview, projection, viewport, &winX,
-						&winY, &winZ);
-				winY = viewport[3] * 2 - winY;
+					gluProject(objX, objY, objZ, modelview, projection, viewport, &winX,
+							&winY, &winZ);
+					winY = viewport[3] * 2 - winY;
 
-				// Judgement of pixel
-				dist = sqrt(
-						pow((start_point.x - winX), 2)
-								+ pow((start_point.y - winY), 2));
-				if (min_start > dist) {
-					min_start = dist;
-					mMinStartIndex[size_set_stroke] = mMesh[mesh]->mVertices[loopVer].allIndex;
-				}
+					//judging of pixels
+					dist = sqrt(
+							pow((start_point.x - winX), 2)
+									+ pow((start_point.y - winY), 2));
+					if (min_start > dist) {
+						min_start = dist;
+						mMinStartIndex[size_set_stroke] = mMesh[mesh]->mVertices[loopVer].allIndex;
+					}
 
-				dist = sqrt(
-						pow((end_point.x - winX), 2)
-								+ pow((end_point.y - winY), 2));
-				if (min_end > dist) {
-					min_end = dist;
-					mMinEndIndex[size_set_stroke] = mMesh[mesh]->mVertices[loopVer].allIndex;
+					dist = sqrt(
+							pow((end_point.x - winX), 2)
+									+ pow((end_point.y - winY), 2));
+					if (min_end > dist) {
+						min_end = dist;
+						mMinEndIndex[size_set_stroke] = mMesh[mesh]->mVertices[loopVer].allIndex;
+					}
 				}
 			}
+		}
+		// 直接入力された3次元バリューを使う場合(for AR)
+		else
+		{
+			REP(mesh,mMesh.size())
+			{
+				Vector3 mesh_vertex;
+				double dist;
+				for (unsigned int loopVer = 0; loopVer < mMesh[mesh]->mVertices.size(); loopVer++)
+				{
+					//temporary variable to store the vertex pos to input simply
+					mesh_vertex = mMesh[mesh]->mVertices[loopVer].point;
+
+					//judging of pixels
+						dist = sqrt(pow((start_point.x - mesh_vertex.x), 2)
+									+ pow((start_point.y - mesh_vertex.y), 2)
+									+ pow((start_point.z - mesh_vertex.z), 2)
+									 );
+					if (min_start > dist)
+					{
+						min_start = dist;
+						mMinStartIndex[size_set_stroke] = mMesh[mesh]->mVertices[loopVer].allIndex;
+					}
+
+					dist = sqrt(pow((end_point.x - mesh_vertex.x), 2)
+								+ pow((end_point.y - mesh_vertex.y), 2)
+								+ pow((end_point.z - mesh_vertex.z), 2)
+								 );
+					if (min_end > dist)
+					{
+						min_end = dist;
+						mMinEndIndex[size_set_stroke] = mMesh[mesh]->mVertices[loopVer].allIndex;
+					}
+
+				}
+			}
+
 		}
 		//  cout << "Strokes' indices : " << mMinEndIndex[size_set_stroke] << "--" << mMinStartIndex[size_set_stroke] << endl;
 		return true;
@@ -394,14 +436,14 @@ namespace TextureTransfer
 
 		cout << "The number of textures = " << sModel->nmaterials << endl;
 
+		ostringstream textureFilename[sModel->nmaterials];
 		REP(m,sModel->nmaterials) {
-			ostringstream textureFilename;
-			textureFilename << "LSCM_texture" << m;
+			textureFilename[m] << "LSCM_" << filename << m;
 			sModel->materials[m] = lib3ds_material_new(
-					textureFilename.str().c_str());
-			textureFilename << ".bmp";
+					textureFilename[m].str().c_str());
+			textureFilename[m] << ".bmp";
 			strcpy(sModel->materials[m]->texture1_map.name,
-					textureFilename.str().c_str());
+					textureFilename[m].str().c_str());
 		}
 
 		ostringstream com1, com2;
@@ -548,9 +590,15 @@ namespace TextureTransfer
 		saveName << filename << ".3ds";
 		lib3ds_file_save(sModel, saveName.str().c_str());
 
+		//copy all new materials to ARMM dir
 		ostringstream com;
-		com << "cp " << saveName.str().c_str()
-				<< " LSCM_texture0.bmp LSCM_texture1.bmp ~/NewARDiorama/ARDiorama/ARMM/Data/rec/";
+		com << "cp " << saveName.str().c_str() << " ";
+		REP(m,sModel->nmaterials)
+		{
+			com << textureFilename[m].str().c_str() << " ";
+		}
+		com << "~/NewARDiorama/ARDiorama/ARMM/Data/Model1/";
+
 		if (system(com.str().c_str())){
 
 		}
@@ -826,8 +874,8 @@ namespace TextureTransfer
 	}
 
 	void ViewingModel::CorrespondTexCoord(GLint *viewport, GLdouble *modelview,
-												GLdouble *projection, cv::Point2d pStart, cv::Point2d pEnd,
-												Vector2 & t1, Vector2 & t2, Vector3 & p1, Vector3 & p2)
+												GLdouble *projection, cv::Point3d pStart, cv::Point3d pEnd,
+												Vector2 & t1, Vector2 & t2, Vector3 & p1, Vector3 & p2, bool glMouse)
 	{
 		double winX, winY, winZ, objX, objY, objZ;
 
@@ -844,51 +892,86 @@ namespace TextureTransfer
 		//init selected mesh information
 		mSelectedMesh.second.clear();
 
-		for (unsigned int loopVer = 0; loopVer < im->mVertices.size(); loopVer++)
+		if(glMouse)
 		{
-			meshVertex.x = im->mVertices[loopVer].point.x;
-			meshVertex.y = im->mVertices[loopVer].point.y;
-			meshVertex.z = im->mVertices[loopVer].point.z;
-			objX = meshVertex.x;
-			objY = meshVertex.y;
-			objZ = meshVertex.z;
-
-			//得られるwindow座標は右下原点
-			//  y
-			//   |
-			//   |
-			//  ----------x
-			//   |
-			gluProject(objX, objY, objZ, modelview, projection, viewport, &winX,
-					&winY, &winZ);
-			winY = viewport[3] * 2 - winY;
-
-			// Judgement of pixel
-			dist = sqrt(pow((pStart.x - winX), 2) + pow((pStart.y - winY), 2));
-			if (minStartDist > dist)
+			for (unsigned int loopVer = 0; loopVer < im->mVertices.size(); loopVer++)
 			{
-				minStartDist = dist;
-				t1.x = im->mVertices[loopVer].tex_coord.x;
-				t1.y = im->mVertices[loopVer].tex_coord.y;
-				p1.x = objX;
-				p1.y = objY;
-				p1.z = objZ;
-				ind1 = im->mVertices[loopVer].id;
+				meshVertex.x = im->mVertices[loopVer].point.x;
+				meshVertex.y = im->mVertices[loopVer].point.y;
+				meshVertex.z = im->mVertices[loopVer].point.z;
+				objX = meshVertex.x;
+				objY = meshVertex.y;
+				objZ = meshVertex.z;
 
-				//始点を選択したメッシュとする
-				mSelectedMesh.first = ind1;
+				//得られるwindow座標は右下原点
+				//  y
+				//   |
+				//   |
+				//  ----------x
+				//   |
+				gluProject(objX, objY, objZ, modelview, projection, viewport, &winX,
+						&winY, &winZ);
+				winY = viewport[3] * 2 - winY;
+
+				// Judgement of pixel
+				dist = sqrt(pow((pStart.x - winX), 2) + pow((pStart.y - winY), 2));
+				if (minStartDist > dist)
+				{
+					minStartDist = dist;
+					t1.x = im->mVertices[loopVer].tex_coord.x;
+					t1.y = im->mVertices[loopVer].tex_coord.y;
+					p1.x = objX;
+					p1.y = objY;
+					p1.z = objZ;
+					ind1 = im->mVertices[loopVer].id;
+
+					//始点を選択したメッシュとする
+					mSelectedMesh.first = ind1;
+				}
+
+				dist = sqrt(pow((pEnd.x - winX), 2) + pow((pEnd.y - winY), 2));
+				if (minEndDist > dist)
+				{
+					minEndDist = dist;
+					t2.x = im->mVertices[loopVer].tex_coord.x;
+					t2.y = im->mVertices[loopVer].tex_coord.y;
+					p2.x = objX;
+					p2.y = objY;
+					p2.z = objZ;
+					ind2 = im->mVertices[loopVer].id;
+				}
 			}
-
-			dist = sqrt(pow((pEnd.x - winX), 2) + pow((pEnd.y - winY), 2));
-			if (minEndDist > dist)
+		}
+		//for direct input from a file
+		else
+		{
+			for (unsigned int loopVer = 0; loopVer < im->mVertices.size(); loopVer++)
 			{
-				minEndDist = dist;
-				t2.x = im->mVertices[loopVer].tex_coord.x;
-				t2.y = im->mVertices[loopVer].tex_coord.y;
-				p2.x = objX;
-				p2.y = objY;
-				p2.z = objZ;
-				ind2 = im->mVertices[loopVer].id;
+				meshVertex.x = im->mVertices[loopVer].point.x;
+				meshVertex.y = im->mVertices[loopVer].point.y;
+				meshVertex.z = im->mVertices[loopVer].point.z;
+
+
+
+				// Judgement of pixel
+				//judging of pixels
+				dist = sqrt(pow((pStart.x - meshVertex.x), 2)
+							+ pow((pStart.y - meshVertex.y), 2)
+							+ pow((pStart.z - meshVertex.z), 2)
+							 );
+				if (minStartDist > dist)
+				{
+					minStartDist = dist;
+					t1.x = im->mVertices[loopVer].tex_coord.x;
+					t1.y = im->mVertices[loopVer].tex_coord.y;
+					p1.x = pStart.x;
+					p1.y = pStart.y;
+					p1.z = pStart.z;
+					ind1 = im->mVertices[loopVer].id;
+
+					//始点を選択したメッシュとする
+					mSelectedMesh.first = ind1;
+				}
 			}
 		}
 

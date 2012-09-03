@@ -3,6 +3,7 @@
 //-------------------------------------------------------------------
 #include <vector>
 #include <iostream>
+#include <fstream>
 #include <stdio.h>
 
 #include "OpenGL.h"
@@ -31,10 +32,20 @@ const static GLfloat lit_amb[4] = { 0.4f, 0.4f, 0.4f, 1.0 }; /* 環境光の強�
 const static GLfloat lit_dif[4] = { 1.0, 1.0, 1.0, 1.0 }; /* 拡散光の強さ */
 const static GLfloat lit_spc[4] = { 0.4f, 0.4f, 0.4f, 1.0 }; /* 鏡面反射光の強さ */
 const static GLfloat lit_pos[4] = { 0.0, 0.0, -9.0, 1.0 }; /* 光源の位置 */
+const char * MODELDIR = "Model3DS/";
+const char * MODELFILE1 = "Torus";
+const char * MODELFILE2 = "apple";
 
+
+using namespace std;
+using namespace TextureTransfer;
 //---------------------------------------------------------------------------
 // Global
 //---------------------------------------------------------------------------
+short fileInput = 0;
+char filename[50];
+std::vector < Vector3 > direct_ver[2];
+
 // to control object
 int mouse_l = 0;
 int mouse_m = 0;
@@ -70,9 +81,8 @@ void DrawTextureMonitor(int x, int y, int w, int h,
 		TextureTransfer::ViewingModel * model, const int & seprationW);
 void PointsDisplay();
 void TexturePaste(bool color = false);
+void keyboard(unsigned char key, int x, int y);
 
-using namespace std;
-using namespace TextureTransfer;
 //---------------------------------------------------------------------------
 // Code
 //---------------------------------------------------------------------------
@@ -148,7 +158,126 @@ void ColorSetting(const double & value, bool harmonic = false) {
 	glColor3f(R, G, B);
 }
 
-void display() {
+void SetDirectVertex(cv::Point3d& start_point,
+		std::vector<Vector3> direct_ver[2], cv::Point3d& end_point) {
+	start_point.x = direct_ver[manupulation - 1][0].x;
+	start_point.y = direct_ver[manupulation - 1][0].y;
+	start_point.z = direct_ver[manupulation - 1][0].z;
+	end_point.x =
+			direct_ver[manupulation - 1][direct_ver[manupulation - 1].size() - 1].x;
+	end_point.y =
+			direct_ver[manupulation - 1][direct_ver[manupulation - 1].size() - 1].y;
+	end_point.z =
+			direct_ver[manupulation - 1][direct_ver[manupulation - 1].size() - 1].z;
+}
+
+void DirectFileInput()
+{
+	if (fileInput == 1) {
+		fileInput = 2;
+		//for texture transfer in AR
+		cout << "Load -> " << filename << endl;
+		std::ifstream input(filename);
+		direct_ver[0].clear();
+		direct_ver[1].clear();
+		int number = 0;
+		while (input) //until input data continues
+		{
+			char line[1024];
+			input.getline(line, 1024);
+			if (!input)
+				break;
+
+			std::stringstream line_input(line);
+			std::string keyword;
+			line_input >> keyword;
+			//in the case of vertex information
+			if (keyword == "v") {
+				Vector3 ver;
+				line_input >> ver.x >> ver.y >> ver.z;
+				//			printf("%f %f %f\n",ver.x, ver.y, ver.z);
+				direct_ver[number].push_back(ver);
+			} else if (keyword == "d") {
+				number = 1;
+			}
+		}
+
+		models[manupulation - 1]->IncrementSumOfStrokes();
+		//reserver click points
+		cv::Point3d start_point, end_point;
+		start_point.x = direct_ver[manupulation - 1][0].x;
+		start_point.y = direct_ver[manupulation - 1][0].y;
+		start_point.z = direct_ver[manupulation - 1][0].z;
+		end_point.x =
+				direct_ver[manupulation - 1][direct_ver[manupulation - 1].size()
+						- 1].x;
+		end_point.y =
+				direct_ver[manupulation - 1][direct_ver[manupulation - 1].size()
+						- 1].y;
+		end_point.z =
+				direct_ver[manupulation - 1][direct_ver[manupulation - 1].size()
+						- 1].z;
+		printf("%f %f %f : %f %f %f \n", start_point.x, start_point.y,
+				start_point.z, end_point.x, end_point.y, end_point.z);
+		int window = 3;
+		if (models[manupulation - 1]->CheckFittingVertices(viewport[window],
+				modelview[window], projection[window], start_point, end_point,
+				false)) {
+			models[manupulation - 1]->UpdateMatrix();
+			models[manupulation - 1]->RenewMeshDataConstruct(2);
+			models[manupulation - 1]->mLSCM->mMesh->FindTextureMax();
+		}
+		models[manupulation - 1]->CorrespondTexCoord(viewport[window],
+				modelview[window], projection[window], start_point, end_point,
+				texPoint[0], texPoint[1], clickPoint[0], clickPoint[1], false);
+
+		//<-- finished decompotion and source's mesh selection
+	}
+	else if( fileInput == 2)
+	{
+		fileInput = 3;
+		keyboard('s', 0, 0);
+	}
+	else if( fileInput == 3)
+	{
+		fileInput = 4;
+		//--->selecting parts of the dest's model
+		manupulation = 2;
+
+		cv::Point3d start_point, end_point;
+		start_point.x = direct_ver[manupulation - 1][0].x;
+		start_point.y = direct_ver[manupulation - 1][0].y;
+		start_point.z = direct_ver[manupulation - 1][0].z;
+		end_point.x =
+				direct_ver[manupulation - 1][direct_ver[manupulation - 1].size()
+						- 1].x;
+		end_point.y =
+				direct_ver[manupulation - 1][direct_ver[manupulation - 1].size()
+						- 1].y;
+		end_point.z =
+				direct_ver[manupulation - 1][direct_ver[manupulation - 1].size()
+						- 1].z;
+		printf("%f %f %f : %f %f %f \n", start_point.x, start_point.y,
+				start_point.z, end_point.x, end_point.y, end_point.z);
+		int window = 4;
+		models[manupulation - 1]->CorrespondTexCoord(viewport[window],
+				modelview[window], projection[window], start_point, end_point,
+				texPoint[0], texPoint[1], clickPoint[0], clickPoint[1], false);
+	}
+	else if( fileInput == 4)
+	{
+		fileInput = 5;
+		keyboard('s', 0, 0);
+	}
+	else if( fileInput == 5)
+	{
+		keyboard('q',0,0);
+	}
+
+}
+
+void display()
+{
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 	DrawModelMonitor(0, 0, W_WIDTH / 2, W_HEIGHT / 2, models[0], false, 3);
@@ -163,6 +292,10 @@ void display() {
 				models[1], 2);
 	}
 	glutSwapBuffers();
+
+	//to control from an external file
+	DirectFileInput();
+//	keyboard('q',0,0);
 }
 
 void idle() {
@@ -204,9 +337,11 @@ void keyboard(unsigned char key, int x, int y) {
 		models[manupulation - 1]->mTrans[0] -= 0.5f;
 		break;
 
+	//for direct input of clicked points from file
 	case 'g':
+	{
 		break;
-
+	}
 	case 'r':
 		if (controllObject == MANUPLATE) {
 			controllObject = DECOMPOSITE;
@@ -243,7 +378,8 @@ void keyboard(unsigned char key, int x, int y) {
 			controller.SetContourPoints();
 			controller.AcquireMatching();
 			TexturePaste(true);
-			models[1]->Save3DModel("NewModel");
+			string newstr("New"); newstr+= MODELFILE2;
+			models[1]->Save3DModel(newstr.c_str());
 
 			IndexedMesh * lscmMesh = models[1]->mLSCM->mMesh.get();
 			REP(verIdx, lscmMesh->mVertices.size()) {
@@ -267,8 +403,10 @@ void keyboard(unsigned char key, int x, int y) {
 	}
 }
 
-void mouse(int button, int state, int x, int y) {
-	if (controllObject == DECOMPOSITE) {
+void mouse(int button, int state, int x, int y)
+{
+	if (controllObject == DECOMPOSITE)
+	{
 		// button ON
 		//reserve mouse-coord and project into window-coord
 		//while pressing the mouse button
@@ -284,7 +422,7 @@ void mouse(int button, int state, int x, int y) {
 			models[manupulation - 1]->IncrementSumOfStrokes();
 
 			//reserver click points
-			cv::Point2d start_point, end_point;
+			cv::Point3d start_point, end_point;
 			start_point.x = point[0][0];
 			start_point.y = point[0][1];
 			end_point.x = point[point.size() - 1][0];
@@ -306,7 +444,9 @@ void mouse(int button, int state, int x, int y) {
 
 			point.clear();
 		}
-	} else if (controllObject == MANUPLATE) {
+	}
+	else if (controllObject == MANUPLATE)
+	{
 		switch (button) {
 		case GLUT_LEFT_BUTTON:
 			if (state == GLUT_DOWN) {
@@ -321,7 +461,10 @@ void mouse(int button, int state, int x, int y) {
 		default:
 			break;
 		}
-	} else {
+	}
+	//TRANSFER, SELECT
+	else
+	{
 		// button ON
 		//reserve mouse-coord and project into window-coord
 		//while pressing the mouse button
@@ -339,7 +482,7 @@ void mouse(int button, int state, int x, int y) {
 //			SetMatrixParam();
 
 			//reserver click points
-			cv::Point2d start_point, end_point;
+			cv::Point3d start_point, end_point;
 			start_point.x = point[0][0];
 			start_point.y = point[0][1];
 			end_point.x = point[point.size() - 1][0];
@@ -463,10 +606,10 @@ void DrawModelMonitor(int x, int y, int w, int h, ViewingModel * model,
 		REP(loopMesh, model->GetMeshSize()) {
 			GLdouble normal[3];
 			GLdouble vertex[3];
-
-			GLfloat ambient[4];
-			GLfloat diffuse[4];
-			GLfloat specular[4];
+//
+//			GLfloat ambient[4];
+//			GLfloat diffuse[4];
+//			GLfloat specular[4];
 
 			glBegin(GL_TRIANGLES);
 			REP(faceIdx,model->GetMeshFacesSize(loopMesh) ) {
@@ -561,12 +704,23 @@ void DrawModelMonitor(int x, int y, int w, int h, ViewingModel * model,
 		}
 
 		//for texture transfer in AR
-//		glBegin(GL_LINES);
+//		glBegin(GL_LINE_STRIP);
 //			glColor3f(1.0f, 0.0f, 0.0f);
 //			glVertex3d(0,0,0);
-//			glColor3f(.0f, 1.0f, 0.0f);
-////			glVertex3d(3.8694, -1.79016, 2.03117);
-////			glVertex3d(-1.64224, -0.166869, 7.70317);
+//
+//			std::ifstream input("Model3DS/debug_remote.txt") ;
+//			while (input) //until input data continues
+//			{
+//				char line[1024];
+//				input.getline(line, 1024);
+//				std::stringstream line_input(line);
+//
+//				GLdouble ver[3];
+//				line_input >> ver[0] >> ver[1] >> ver[2];
+//				glLineWidth(25);
+//				glColor3f(.0f, 1.0f, 0.0f);
+//				glVertex3dv(ver);
+//			}
 //		glEnd();
 	}
 	//get each transform matrix
@@ -652,12 +806,12 @@ void DrawTextureMonitor(int x, int y, int w, int h, ViewingModel * model,
 	// ------>
 
 	//for debug (interaction points)
-	glColor3d(0, 0, .5);
-	glLineWidth(3);
-	glBegin(GL_LINES);
-	glVertex2f(texPoint[0].x, texPoint[0].y);
-	glVertex2f(texPoint[1].x, texPoint[1].y);
-	glEnd();
+//	glColor3d(0, 0, .5);
+//	glLineWidth(3);
+//	glBegin(GL_LINES);
+//	glVertex2f(texPoint[0].x, texPoint[0].y);
+//	glVertex2f(texPoint[1].x, texPoint[1].y);
+//	glEnd();
 
 	//for rendering texture deployments
 	glLineWidth(1);
@@ -880,10 +1034,14 @@ void Init() {
 	glShadeModel(GL_SMOOTH);
 
 	//load 3ds model
-	const char * model1Name = "Model3DS/Torus.3ds";
-	const char * model2Name = "Model3DS/cow.3ds";
-	models[0] = new ViewingModel(model1Name);
-	models[1] = new ViewingModel(model2Name);
+	string model1Name(MODELDIR);
+	model1Name += MODELFILE1;
+	model1Name += ".3ds";
+	string model2Name(MODELDIR);
+	model2Name += MODELFILE2;
+	model2Name += ".3ds";
+	models[0] = new ViewingModel(model1Name.c_str());
+	models[1] = new ViewingModel(model2Name.c_str());
 	manupulation = 1;
 
 	models[0]->LoadTexture("texture1.bmp");
@@ -898,6 +1056,7 @@ void Init() {
 
 	controller.InitHashmap();
 	displayTexture = true;
+	controllObject = SELECT;
 }
 
 int main(int argc, char *argv[]) {
@@ -911,6 +1070,13 @@ int main(int argc, char *argv[]) {
 
 	Init();
 
+	if(argc == 2)
+//	if(true)
+	{
+		strcpy(filename, argv[1]);
+//		strcpy(filename, "Model3DS/debug_remote.txt");
+		fileInput = 1;
+	}
 	// start to display image
 	glutMainLoop();
 

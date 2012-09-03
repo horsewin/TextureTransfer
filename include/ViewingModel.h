@@ -71,10 +71,10 @@ namespace TextureTransfer
 	  void Save3DModel(const char * filename);
 
 	  bool LoadTexture(const char * filename);
-	  bool CheckFittingVertices(GLint *viewport, GLdouble *modelview, GLdouble *projection, cv::Point2d start_point, cv::Point2d end_point);
+	  bool CheckFittingVertices(GLint *viewport, GLdouble *modelview, GLdouble *projection, cv::Point3d start_point, cv::Point3d end_point, bool glMouse = true);
 	  void UpdateMatrix();
 	  void CorrespondTexCoord(GLint *viewport, GLdouble *modelview, GLdouble *projection,
-			  cv::Point2d start_point, cv::Point2d end_point, Vector2 & t1, Vector2 & t2, Vector3 & p1, Vector3 & p2);
+			  cv::Point3d start_point, cv::Point3d end_point, Vector2 & t1, Vector2 & t2, Vector3 & p1, Vector3 & p2, bool glMouse = true);
 	  void RenewMeshDataConstruct(const int & separateNumber);
 
 	  void  QueryNormal(const int & outer_loop, const int & mesh_index, const int & vertexIdx, GLdouble * normal);
