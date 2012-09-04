@@ -271,20 +271,20 @@ namespace TextureTransfer
 				Vector3 tmp(mesh->vertices[loopVer][0],mesh->vertices[loopVer][1],mesh->vertices[loopVer][2]);
 //				tmp = mesh->vertices[loopVer];
 //				printf("%f,%f,%f\n",mesh->vertices[loopVer][0], mesh->vertices[loopVer][1], mesh->vertices[loopVer][2]);
-				mMesh[loop]->add_vertex(tmp, Vector2(0,0));
+				mMesh[loop]->AddVertex(tmp, Vector2(0,0));
 			}
 
 			//面データに対応する頂点情報を格納
 			REP(loopFace, mesh->nfaces)
 			{
-				mMesh[loop]->begin_facet();
+				mMesh[loop]->BeginFacet();
 				//reserve vertex information
 				REP(loopVer,3)
 				{
-					mMesh[loop]->add_vertex_to_facet(mesh->faces[loopFace].index[loopVer]);
+					mMesh[loop]->AddVertex2Facet(mesh->faces[loopFace].index[loopVer]);
 					mMesh[loop]->mVertices[mesh->faces[loopFace].index[loopVer]].normal = normal[loopFace];
 				}
-				mMesh[loop]->end_facet();
+				mMesh[loop]->EndFacet();
 
 	//			mMesh[loop].materials.push_back(mesh->faces[loopFace].material);
 
@@ -337,7 +337,7 @@ namespace TextureTransfer
 		//mesh data structure for LSCM
 		//	IndexedMesh * tmpMesh = mLSCM[0]->mesh_.get();
 		IndexedMesh * tmpMesh = mLSCM->mMesh.get();
-		tmpMesh->clear();
+		tmpMesh->Clear();
 
 		//mesh data structure for displaying 3D model
 		mMesh.clear();
@@ -359,8 +359,8 @@ namespace TextureTransfer
 				Vector3 p;
 				line_input >> p.x >> p.y >> p.z;
 
-				tmpMesh->add_vertex(p, Vector2(0, 0));
-				mMesh[0]->add_vertex(p, Vector2(0, 0));
+				tmpMesh->AddVertex(p, Vector2(0, 0));
+				mMesh[0]->AddVertex(p, Vector2(0, 0));
 				tmpMesh->mVertices[tmpMesh->mVertices.size()-1].textureNumber = 0;
 
 			}
@@ -372,8 +372,8 @@ namespace TextureTransfer
 			//in the case of face connectivity information
 			else if (keyword == "f")
 			{
-				tmpMesh->begin_facet();
-				mMesh[0]->begin_facet();
+				tmpMesh->BeginFacet();
+				mMesh[0]->BeginFacet();
 
 				while (line_input)
 				{
@@ -386,8 +386,8 @@ namespace TextureTransfer
 						v_input >> index;
 
 						//set face connectivity with a vertex
-						tmpMesh->add_vertex_to_facet(index - 1);
-						mMesh[0]->add_vertex_to_facet(index - 1);
+						tmpMesh->AddVertex2Facet(index - 1);
+						mMesh[0]->AddVertex2Facet(index - 1);
 
 						char c;
 						v_input >> c;
@@ -398,8 +398,8 @@ namespace TextureTransfer
 					}
 				}
 
-				mMesh[0]->end_facet();
-				tmpMesh->end_facet();
+				mMesh[0]->EndFacet();
+				tmpMesh->EndFacet();
 			}
 		}
 
@@ -841,7 +841,7 @@ namespace TextureTransfer
 	{
 		Vector3 tmpVertex   = mLSCM->mMesh->mVertices[loopVer].point;
 		Vector2 tmpTexcoord = mLSCM->mMesh->mVertices[loopVer].tex_coord;
-		mSelectedMesh.second.add_vertex(tmpVertex, tmpTexcoord);
+		mSelectedMesh.second.AddVertex(tmpVertex, tmpTexcoord);
 		mSelectedMesh.second.mVertices.at(mSelectedMesh.second.mVertices.size()-1).id = loopVer;
 		mSelectedMesh.second.mVertices.at(mSelectedMesh.second.mVertices.size()-1).locked = false;
 		mSelectedMesh.second.mVertices.at(mSelectedMesh.second.mVertices.size()-1).harmonicValue
@@ -869,7 +869,7 @@ namespace TextureTransfer
 //		t.first = 0;
 //		t.second = mLSCM->mMesh->mTextureCoords[index];
 //		mSelectedMesh.second.mTextureCoords.push_back(t);
-		mSelectedMesh.second.add_vertex_to_facet(loopFace);
+		mSelectedMesh.second.AddVertex2Facet(loopFace);
 
 	}
 
@@ -890,7 +890,7 @@ namespace TextureTransfer
 		double dist;
 
 		//init selected mesh information
-		mSelectedMesh.second.clear();
+		mSelectedMesh.second.Clear();
 
 		if(glMouse)
 		{
@@ -1085,7 +1085,7 @@ namespace TextureTransfer
 		{
 			REP(verIdx, mMesh[loopMesh]->mVertices.size())
 			{
-				mLSCM->mMesh->add_vertex(mMesh[loopMesh]->mVertices[verIdx].point, Vector2(0,0));
+				mLSCM->mMesh->AddVertex(mMesh[loopMesh]->mVertices[verIdx].point, Vector2(0,0));
 #if FILE_WRITE == 1
 				out << "v "
 						<< mLSCM->mMesh->mVertices[verIdx].point.x << "\t"
@@ -1105,13 +1105,13 @@ namespace TextureTransfer
 		{
 			REP(faceIdx, mMesh[loopMesh]->mFaces.size())
 			{
-				mLSCM->mMesh->begin_facet();
+				mLSCM->mMesh->BeginFacet();
 				REP(vertexIdx, mMesh[loopMesh]->mFaces[faceIdx].size())
 				{
 					int index = mMesh[loopMesh]->mFaces[faceIdx].at(vertexIdx);
-					mLSCM->mMesh->add_vertex_to_facet(index + sumOfVertices);
+					mLSCM->mMesh->AddVertex2Facet(index + sumOfVertices);
 				}
-				mLSCM->mMesh->end_facet();
+				mLSCM->mMesh->EndFacet();
 			}
 			sumOfVertices += mMesh[loopMesh]->mVertices.size();
 		}

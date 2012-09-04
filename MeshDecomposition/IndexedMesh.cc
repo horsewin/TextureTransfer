@@ -18,6 +18,7 @@
 // Constant/Define
 //---------------------------------------------------------------------------
 //#define OUTPUT_TEXCOORDS 0
+#define REP(i,n) for(int i=0;i<(int)n;++i)
 
 //---------------------------------------------------------------------------
 // Global
@@ -81,36 +82,36 @@ namespace TextureTransfer
 	#endif
 	}
 
-	Vertex* IndexedMesh::add_vertex() {
+	Vertex* IndexedMesh::AddVertex() {
 	  mVertices.push_back(Vertex()) ;
 	  mVertices.rbegin()->id = mVertices.size() - 1 ;
 	  return &*(mVertices.rbegin()) ;
 	}
 
-	Vertex* IndexedMesh::add_vertex(const Vector3& p, const Vector2& t) {
+	Vertex* IndexedMesh::AddVertex(const Vector3& p, const Vector2& t) {
 	  mVertices.push_back(Vertex(p,t)) ;
 	  mVertices.rbegin()->id = mVertices.size() - 1 ;
 	  return &*(mVertices.rbegin()) ;
 	}
 
-	void IndexedMesh::begin_facet() {
+	void IndexedMesh::BeginFacet() {
 	  assert(!mInFacet) ;
 	  mFaces.push_back(Facet()) ;
 	  mInFacet = true ;
 	}
 
-	void IndexedMesh::end_facet() {
+	void IndexedMesh::EndFacet() {
 	  assert(mInFacet) ;
 	  mInFacet = false ;
 	}
 
-	void IndexedMesh::add_vertex_to_facet(unsigned int i) {
+	void IndexedMesh::AddVertex2Facet(unsigned int i) {
 	  assert(mInFacet) ;
 	  assert(i < mVertices.size()) ;
 	  mFaces.rbegin()->push_back(i) ;
 	}
 
-	void IndexedMesh::clear()
+	void IndexedMesh::Clear()
 	{
 		mNumIndex = 0;
 
@@ -119,7 +120,7 @@ namespace TextureTransfer
 		mTextureFaces.clear();
 	}
 
-	void IndexedMesh::save(const std::string& file_name)
+	void IndexedMesh::Save(const std::string& file_name)
 	{
 	  unsigned int i,j ;
 	  std::ofstream out(file_name.c_str()) ;
@@ -146,6 +147,50 @@ namespace TextureTransfer
 		  out << "# anchor " << i+1 << std::endl ;
 		}
 	  }
+	}
+
+	//to correct calculation of LSCM in the case of reconstructed objects
+	void IndexedMesh::VertexSynthesis( void )
+	{
+		uint current_id = 0;
+
+		std::vector<Vertex> newVertices;
+
+		REP(id_seek, mVertices.size())
+		{
+			bool duplicate = false;
+			REP(id_pair, id_seek)
+			{
+				if(mVertices[id_pair].point == mVertices[id_seek].point)
+				{
+					//found out duplicating of vertices
+					mVertices[id_seek].id = mVertices[id_pair].id;
+					duplicate = true;
+					break;
+				}
+
+			}
+			if( !duplicate )
+			{
+				current_id++;
+				mVertices[id_seek].id = current_id;
+				newVertices.push_back(mVertices[id_seek]);
+			}
+		}
+
+		//revise face info
+		REP(id_face, mFaces.size())
+		{
+			Facet& F = mFaces[id_face];
+			//Face内のvertex id は0から始まる
+			REP(id_innerF, F.size())
+			{
+				F[id_innerF] = mVertices[F[id_innerF]].id;
+			}
+		}
+
+		//resize array of vertex
+		mVertices.swap(newVertices);
 	}
 
 } //<--------- end of namespace TextureTransfer --------------

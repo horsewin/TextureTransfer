@@ -14,6 +14,7 @@
 //-------------------------------------------------------------------
 namespace TextureTransfer
 {
+	const double epsilon = 0.00097; // 1/1024
 
 	typedef unsigned int uint;
 
@@ -41,6 +42,22 @@ namespace TextureTransfer
 			return Vector3(
 				t[0], t[1], t[2]
 			) ;
+		}
+
+		Vector3 operator=(double *t){
+			return Vector3(
+				t[0], t[1], t[2]
+			) ;
+		}
+
+		bool operator==(const Vector3 & v1)
+		{
+			if( fabs(v1.x - this->x) < epsilon
+				&& fabs(v1.y - this->y) < epsilon
+				&& fabs(v1.z - this->z) < epsilon
+				) return true;
+			else
+				return false;
 		}
 
 		double x ;

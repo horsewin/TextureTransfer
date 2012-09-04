@@ -21,15 +21,15 @@ namespace TextureTransfer
 	  IndexedMesh();
 	  ~IndexedMesh();
 
-	  Vertex* add_vertex();
-	  Vertex* add_vertex(const Vector3& p, const Vector2& t);
+	  Vertex* AddVertex();
+	  Vertex* AddVertex(const Vector3& p, const Vector2& t);
 
-	  void begin_facet();
-	  void end_facet();
-	  void add_vertex_to_facet(unsigned int i);
-	  void clear();
-
-	  void save(const std::string & file_name);
+	  void BeginFacet();
+	  void EndFacet();
+	  void AddVertex2Facet(unsigned int i);
+	  void Clear();
+	  void Save(const std::string & file_name);
+	  void VertexSynthesis( void );
 
 	  void FindTextureMax();
 
