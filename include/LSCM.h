@@ -29,7 +29,7 @@ namespace TextureTransfer
 	 public:
 	  LSCM();
 	  ~LSCM(void);
-	  void run(const char * t_solver, const char * filename);
+	  void run(const char * t_solver);
 	  void apply();
 
 	 protected:

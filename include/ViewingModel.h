@@ -102,7 +102,7 @@ namespace TextureTransfer
 	  bool LoadMatrixFromObj();
 
 	  void Load3DSModel();
-	  void LoadObjModel();
+	  void LoadObjModel(const char * modelName = NULL);
 	  std::deque<Texture *> LoadTextures(::Lib3dsFile * pModel, std::string dirpath);
 
 	  void SetSelectedMeshData(const int& loopVer);

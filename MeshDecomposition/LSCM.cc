@@ -444,13 +444,14 @@ namespace TextureTransfer
 	  vxmax->locked = true ;
 	}
 
-	void LSCM::run(const char * t_solver, const char * filename) {
+	void LSCM::run(const char * t_solver)
+	{
 	  int len = strlen(t_solver);
 	  type_solver = new char[len];
 	  strcpy(type_solver, t_solver);
 
-	//  std::cout << "Running LSCM ..." << std::endl ;
-	  //  mesh_->load(filename) ;
+	  //for synthesizing duplication of a vertex
+	  mMesh->VertexSynthesis();
 
 	  apply() ;
 

@@ -192,6 +192,13 @@ namespace TextureTransfer
 
 			//convert to OBJ file format
 			ConvertDataStructure();
+
+			//重複頂点削除ー＞ファイルに書き戻すー＞書き戻した内容を読み直す
+			//TODO 冗長な処理をしているので簡単化
+			mLSCM->mMesh->VertexSynthesis();
+			const char * saveFile = "Model3DS/object2.obj";
+			mLSCM->mMesh->Save(saveFile);
+			LoadObjModel(saveFile);
 		}
 		else if (!strcmp(dot, ".obj") || !strcmp(dot, ".OBJ"))
 		{
@@ -212,7 +219,6 @@ namespace TextureTransfer
 		cout << "Mesh(" << mMesh.size() << ") SUM OF VERTICES:" << mSumOfVertices << endl;
 
 		mIsLoadMatrix = LoadMatrixFromObj();
-
 	}
 
 	void ViewingModel::Load3DSModel(void)
@@ -330,9 +336,22 @@ namespace TextureTransfer
 #endif
 	}
 
-	void ViewingModel::LoadObjModel(void)
+	void ViewingModel::LoadObjModel(const char * modelName)
 	{
-		std::ifstream input(mModelname);
+		std::ifstream input;
+		if(modelName)
+		{
+			input.open(modelName);
+		}
+		else if( mModelname )
+		{
+			input.open(mModelname);
+		}
+		else
+		{
+			cerr << "Error: No model is available" << endl;
+			return;
+		}
 
 		//mesh data structure for LSCM
 		//	IndexedMesh * tmpMesh = mLSCM[0]->mesh_.get();
