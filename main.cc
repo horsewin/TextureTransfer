@@ -34,8 +34,9 @@ const static GLfloat lit_spc[4] = { 0.4f, 0.4f, 0.4f, 1.0 }; /* 鏡面反射光�
 const static GLfloat lit_pos[4] = { 0.0, 0.0, -9.0, 1.0 }; /* 光源の位置 */
 const char * MODELDIR = "Model3DS/";
 const char * MODELFILE1 = "Torus";
-const char * MODELFILE2 = "apple";
-
+const char * MODELFILE2 = "object_syn";
+const char * FORMAT1 = ".3ds";
+const char * FORMAT2 = ".obj";
 
 using namespace std;
 using namespace TextureTransfer;
@@ -335,6 +336,11 @@ void keyboard(unsigned char key, int x, int y) {
 
 	case 'a':
 		models[manupulation - 1]->mTrans[0] -= 0.5f;
+		break;
+
+	case 'v':
+		models[manupulation - 1]->mLSCM->mMesh->VertexSynthesis();
+		models[manupulation - 1]->mLSCM->mMesh->Save("Model3DS/object_syn.obj");
 		break;
 
 	//for direct input of clicked points from file
@@ -1036,22 +1042,22 @@ void Init() {
 	//load 3ds model
 	string model1Name(MODELDIR);
 	model1Name += MODELFILE1;
-	model1Name += ".3ds";
+	model1Name += FORMAT1;
 	string model2Name(MODELDIR);
 	model2Name += MODELFILE2;
-	model2Name += ".3ds";
+	model2Name += FORMAT2;
 	models[0] = new ViewingModel(model1Name.c_str());
 	models[1] = new ViewingModel(model2Name.c_str());
 	manupulation = 1;
 
 	models[0]->LoadTexture("texture1.bmp");
 	models[0]->mLSCM->run("CG", "");
-	models[0]->mLSCM->mMesh->save("Model3DS/object1.obj");
+	models[0]->mLSCM->mMesh->Save("Model3DS/object1.obj");
 	models[0]->mLSCM->mMesh->FindTextureMax();
 //
 	models[1]->LoadTexture("texture2.bmp");
 	models[1]->mLSCM->run("CG", "");
-	models[1]->mLSCM->mMesh->save("Model3DS/object2.obj");
+	models[1]->mLSCM->mMesh->Save("Model3DS/object2.obj");
 	models[1]->mLSCM->mMesh->FindTextureMax();
 
 	controller.InitHashmap();

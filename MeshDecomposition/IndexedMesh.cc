@@ -172,8 +172,8 @@ namespace TextureTransfer
 			}
 			if( !duplicate )
 			{
-				current_id++;
 				mVertices[id_seek].id = current_id;
+				current_id++;
 				newVertices.push_back(mVertices[id_seek]);
 			}
 		}
