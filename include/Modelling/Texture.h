@@ -36,6 +36,7 @@ namespace TextureTransfer
 		void  draw( void ) const;//for debug
 		int		getTex_id( void ) const{ return (int)tex_id; }
 
+
 	private:
 		unsigned  tex_width;
 		unsigned  tex_height;

@@ -9,6 +9,7 @@
 // Includes
 //-------------------------------------------------------------------
 #include "IndexedMesh.h"
+#include <stdio.h>
 #include <iostream>
 #include <fstream>
 #include <sstream>
@@ -138,8 +139,15 @@ namespace TextureTransfer
 		const Facet& F = mFaces[i] ;
 		for(j=0; j<F.size(); j++) {
 		  out << (F[j] + 1) << "/" << (F[j] + 1) << " " ;
-//		  mTextureFaces.push_back(F[j]+1);
 		}
+//		std::vector<int> faceIdx;
+//		for(j=0; j<F.size(); j++) {
+//			faceIdx.push_back(F[j]+1);
+//		}
+//		assert(faceIdx.size() == 3);
+//		out << faceIdx[0] << "/" << faceIdx[0] << " ";
+//		out << faceIdx[2] << "/" << faceIdx[2] << " ";
+//		out << faceIdx[1] << "/" << faceIdx[1] << " ";
 		out << std::endl ;
 	  }
 	  for(i=0; i<mVertices.size(); i++) {
@@ -154,6 +162,8 @@ namespace TextureTransfer
 	{
 		uint current_id = 0;
 
+		int dup = 0;
+
 		std::vector<Vertex> newVertices;
 
 		REP(id_seek, mVertices.size())
@@ -161,10 +171,19 @@ namespace TextureTransfer
 			bool duplicate = false;
 			REP(id_pair, id_seek)
 			{
+//				if( id)
 				if(mVertices[id_pair].point == mVertices[id_seek].point)
 				{
 					//found out duplicating of vertices
 					mVertices[id_seek].id = mVertices[id_pair].id;
+
+					//for debug
+//					std::cout << "(" << mVertices[id_pair].point.x << "," << mVertices[id_pair].point.y << "," << mVertices[id_pair].point.z << ") -- ";
+//					std::cout << "(" << mVertices[id_seek].point.x << "," << mVertices[id_seek].point.y << "," << mVertices[id_seek].point.z;
+//					printf("(%lf,%lf,%lf)-(%lf,%lf,%lf)", mVertices[id_seek].point.x ,mVertices[id_seek].point.y ,mVertices[id_seek].point.z,
+//							mVertices[id_pair].point.x, mVertices[id_pair].point.y, mVertices[id_pair].point.z );
+//					printf(" : %d - %d", id_pair, id_seek);
+//					printf("<%lf,%lf,%lf>\n", fabs(v1.x - vs1.x), fabs(v1.y - vs1.y), fabs(v1.z - vs1.z));
 					duplicate = true;
 					break;
 				}
@@ -178,6 +197,7 @@ namespace TextureTransfer
 			}
 		}
 
+		std::cout << mVertices.size() << "==" << newVertices.size() << std::endl;
 		//revise face info
 		REP(id_face, mFaces.size())
 		{
@@ -189,8 +209,15 @@ namespace TextureTransfer
 			}
 		}
 
+		std::cout << dup << std::endl;
 		//resize array of vertex
 		mVertices.swap(newVertices);
+
+//		mVertices.clear();
+//		REP(i,newVertices.size())
+//		{
+//			mVertices.push_back(newVertices[i]);
+//		}
 	}
 
 } //<--------- end of namespace TextureTransfer --------------

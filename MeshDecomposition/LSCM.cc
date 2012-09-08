@@ -451,7 +451,7 @@ namespace TextureTransfer
 	  strcpy(type_solver, t_solver);
 
 	  //for synthesizing duplication of a vertex
-	  mMesh->VertexSynthesis();
+//	  mMesh->VertexSynthesis();
 
 	  apply() ;
 

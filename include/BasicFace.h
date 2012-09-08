@@ -8,13 +8,14 @@
 //-------------------------------------------------------------------
 #include <cmath>
 #include <vector>
+#include <cfloat>
 
 //-------------------------------------------------------------------
 // Class definition
 //-------------------------------------------------------------------
 namespace TextureTransfer
 {
-	const double epsilon = 0.00097; // 1/1024
+	const double epsilon = DBL_MIN;
 
 	typedef unsigned int uint;
 
@@ -24,6 +25,10 @@ namespace TextureTransfer
 		Vector2() : x(0), y(0) { }
 		double x ;
 		double y ;
+
+//		Vector2 operator=(const Vector2 & t){
+//			return Vector2(t.x, t.y);
+//		}
 	} ;
 
 	class Vector3 {

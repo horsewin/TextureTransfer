@@ -195,10 +195,13 @@ namespace TextureTransfer
 
 			//重複頂点削除ー＞ファイルに書き戻すー＞書き戻した内容を読み直す
 			//TODO 冗長な処理をしているので簡単化
-			mLSCM->mMesh->VertexSynthesis();
-			const char * saveFile = "Model3DS/object2.obj";
-			mLSCM->mMesh->Save(saveFile);
-			LoadObjModel(saveFile);
+			if(mMesh.size() > 1)
+			{
+				mLSCM->mMesh->VertexSynthesis();
+				const char * saveFile = "Model3DS/object3.obj";
+				mLSCM->mMesh->Save(saveFile);
+				LoadObjModel(saveFile);
+			}
 		}
 		else if (!strcmp(dot, ".obj") || !strcmp(dot, ".OBJ"))
 		{
@@ -219,6 +222,7 @@ namespace TextureTransfer
 		cout << "Mesh(" << mMesh.size() << ") SUM OF VERTICES:" << mSumOfVertices << endl;
 
 		mIsLoadMatrix = LoadMatrixFromObj();
+
 	}
 
 	void ViewingModel::Load3DSModel(void)
@@ -232,6 +236,8 @@ namespace TextureTransfer
 			std::cerr << "can't Open file\n";
 			exit(0);
 		}
+
+		cout << "MeshVersion = " << m_model->mesh_version << endl;
 
 		//メッシュ分メモリ確保
 		REP(i,m_model->nmeshes)
@@ -277,6 +283,7 @@ namespace TextureTransfer
 				Vector3 tmp(mesh->vertices[loopVer][0],mesh->vertices[loopVer][1],mesh->vertices[loopVer][2]);
 //				tmp = mesh->vertices[loopVer];
 //				printf("%f,%f,%f\n",mesh->vertices[loopVer][0], mesh->vertices[loopVer][1], mesh->vertices[loopVer][2]);
+//				if(mesh->texcos) printf("%f,%f\n",mesh->texcos[loopVer][0], mesh->texcos[loopVer][1]);
 				mMesh[loop]->AddVertex(tmp, Vector2(0,0));
 			}
 
@@ -289,6 +296,8 @@ namespace TextureTransfer
 				{
 					mMesh[loop]->AddVertex2Facet(mesh->faces[loopFace].index[loopVer]);
 					mMesh[loop]->mVertices[mesh->faces[loopFace].index[loopVer]].normal = normal[loopFace];
+
+
 				}
 				mMesh[loop]->EndFacet();
 
