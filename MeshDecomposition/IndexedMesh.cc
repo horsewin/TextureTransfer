@@ -137,17 +137,18 @@ namespace TextureTransfer
 	  for(i=0; i<mFaces.size(); i++) {
 		out << "f " ;
 		const Facet& F = mFaces[i] ;
-		for(j=0; j<F.size(); j++) {
-		  out << (F[j] + 1) << "/" << (F[j] + 1) << " " ;
-		}
-//		std::vector<int> faceIdx;
 //		for(j=0; j<F.size(); j++) {
-//			faceIdx.push_back(F[j]+1);
+//		  out << (F[j] + 1) << "/" << (F[j] + 1) << " " ;
 //		}
-//		assert(faceIdx.size() == 3);
-//		out << faceIdx[0] << "/" << faceIdx[0] << " ";
-//		out << faceIdx[2] << "/" << faceIdx[2] << " ";
-//		out << faceIdx[1] << "/" << faceIdx[1] << " ";
+
+		std::vector<int> faceIdx;
+		for(j=0; j<F.size(); j++) {
+			faceIdx.push_back(F[j]+1);
+		}
+		assert(faceIdx.size() == 3);
+		out << faceIdx[0] << "/" << faceIdx[0] << " ";
+		out << faceIdx[1] << "/" << faceIdx[1] << " ";
+		out << faceIdx[2] << "/" << faceIdx[2] << " ";
 		out << std::endl ;
 	  }
 	  for(i=0; i<mVertices.size(); i++) {

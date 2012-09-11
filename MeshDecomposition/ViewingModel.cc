@@ -213,6 +213,13 @@ namespace TextureTransfer
 			return;
 		}
 
+		if(!mHasTexture)
+		{
+		}
+		LoadTexture("texture1.bmp");
+
+
+		//Count all verteices up
 		REP(id,mMesh.size())
 		{
 			//indexは0からはじまるので頂点数は+1される
@@ -236,8 +243,16 @@ namespace TextureTransfer
 			std::cerr << "can't Open file\n";
 			exit(0);
 		}
+		printf("MeshVersion=%d, Materials=%d\n", m_model->mesh_version, m_model->nmaterials);
 
-		cout << "MeshVersion = " << m_model->mesh_version << endl;
+		if(m_model->nmaterials == 0)
+		{
+			mHasTexture = false;
+		}
+		else
+		{
+//			LoadTextures(m_model, "Model3DS");
+		}
 
 		//メッシュ分メモリ確保
 		REP(i,m_model->nmeshes)
@@ -523,14 +538,14 @@ namespace TextureTransfer
 			//メッシュに属する頂点数を数えてインデックスを割り振る
 			REP(faceIdx, lscmMesh->mFaces.size() )
 			{
-				//すべての面が選択領域の条件を満たしているかCHECK
-				bool compose = true;
+				//面のある一点が選択領域の条件を満たしているかCHECK
+				bool compose = false;
 				REP(verIdx, lscmMesh->mFaces[faceIdx].size())
 				{
 					int index = lscmMesh->mFaces[faceIdx].at(verIdx);
-					if(lscmMesh->mVertices[index].textureNumber != texNumber)
+					if(lscmMesh->mVertices[index].textureNumber == texNumber)
 					{
-						compose = false;
+						compose = true;
 						break;
 					}
 
@@ -571,16 +586,18 @@ namespace TextureTransfer
 			//頂点情報の保存
 			double img_width  = (W_WIDTH / 2);
 			double img_height = (W_HEIGHT / 2);
+			double obj_scale = 1;
 			REP(index, vertices.size())
 			{
-				sModel->meshes[texNumber]->vertices[index][0] = vertices[index].point.x;
-				sModel->meshes[texNumber]->vertices[index][1] = vertices[index].point.y;
-				sModel->meshes[texNumber]->vertices[index][2] = vertices[index].point.z;
+				sModel->meshes[texNumber]->vertices[index][0] = vertices[index].point.x*obj_scale;
+				sModel->meshes[texNumber]->vertices[index][1] = vertices[index].point.y*obj_scale;
+				sModel->meshes[texNumber]->vertices[index][2] = vertices[index].point.z*obj_scale;
 
 				//u-v座標系を0-1にする
+				//2012.9.11 OSGで読み込ませるためにv座標を上下反転させている
 				sModel->meshes[texNumber]->texcos[index][0] =
 						(vertices[index].tex_coord.x - lscmMesh->mTexMin.x) * ratio_x / img_width;;
-				sModel->meshes[texNumber]->texcos[index][1] =
+				sModel->meshes[texNumber]->texcos[index][1] = 1 -
 						((img_height - (vertices[index].tex_coord.y - lscmMesh->mTexMin.y) * ratio_y) - 0) / img_height;
 #if DEBUG_TEXTURE_COORD
 				cout << sModel->meshes[texNumber]->texcos[index][0] << "," << sModel->meshes[texNumber]->texcos[index][1] << endl;
@@ -634,18 +651,22 @@ namespace TextureTransfer
 	}
 
 	deque<Texture *> ViewingModel::LoadTextures(::Lib3dsFile * pModel,
-			string dirpath) {
+			string dirpath)
+	{
 		assert( pModel);
+
 		// Creation of the texture's list
 		deque<Texture *> texList;
 		texList.clear();
 
 		// Load a set of textures
-		for (int ii = 0; ii < pModel->nmaterials; ++ii) {
+		REP(ii,pModel->nmaterials)
+		{
 			// Acquire a texture name
 			string sTexFile = pModel->materials[ii]->texture1_map.name;
 
-			if (!sTexFile.empty()) {
+			if (!sTexFile.empty())
+			{
 				string textureFilename = dirpath + "/" + sTexFile;
 				const char * sp = strrchr(sTexFile.c_str(), '.');
 				if (strcmp(sp, ".gif") == 0 || strcmp(sp, ".GIF") == 0) {
@@ -660,7 +681,17 @@ namespace TextureTransfer
 						static_cast<const ::ImageType>(TextureRGB));
 				texList.push_back(tmpTexture);
 			}
+			else
+			{
+				cerr << "Error: empty file is loaded in LoadTextures;" << sTexFile.c_str() << endl;
+				cerr << "Model name is " << mModelname << endl;
+			}
 		}
+		if(texList.size() == 0)
+		{
+			mHasTexture = false;
+		}
+
 		return (texList);
 	}
 
@@ -1275,18 +1306,6 @@ namespace TextureTransfer
 		this->mSumOfStrokes++;
 	}
 
-	/*
-	 *
-	 */
-	bool ViewingModel::RunLSCM(void) {
-		if (!mIsConvert) {
-			cerr << "Not converted yet! " << endl;
-			return false;
-		}
-
-		return true;
-	}
-
 	bool ViewingModel::LoadTexture(const char * filename)
 	{
 		::ImageType TextureRGB = (img_load(filename));
@@ -1303,7 +1322,7 @@ namespace TextureTransfer
 	 */
 	ViewingModel::ViewingModel(const char * name)
 	: mScales(5.0), mSumOfVertices(0), mSumOfStrokes(0),  mIsConvert(false), mIsLoadMatrix(false),
-	  mHasTexture(false), mMeshSelected(false)
+	  mHasTexture(true), mMeshSelected(false)
 	{
 		mModelname = new char[strlen(name)];
 		strcpy(mModelname, name);

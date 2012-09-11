@@ -33,8 +33,7 @@ namespace TextureTransfer
 		void  bind( void ) const;
 		void  unbind( void ) const;
 
-		void  draw( void ) const;//for debug
-		int		getTex_id( void ) const{ return (int)tex_id; }
+		int		getTex_id( void ) const{ return static_cast<int>(tex_id); }
 
 
 	private:

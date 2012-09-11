@@ -89,13 +89,6 @@ namespace TextureTransfer
 	const std::vector< Texture::Buftype > & Texture::getData( void ) const {
 		return this->data;
 	}
-	void Texture::draw( void ) const{
-		bind( );
-
-		glEnd( );
-		unbind( );
-		return;
-	}
 
 	void Texture::bind( void ) const{
 	#if TEXTURE_RECT_ARB == 1

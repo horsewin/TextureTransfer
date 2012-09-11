@@ -7,7 +7,7 @@
 #include <stdio.h>
 
 #include "OpenGL.h"
-#include "OpenCV.h"
+//#include "TickCounter.h"
 
 #include <cvd/image_io.h>
 
@@ -32,11 +32,11 @@ const static GLfloat lit_amb[4] = { 0.4f, 0.4f, 0.4f, 1.0 }; /* 環境光の強�
 const static GLfloat lit_dif[4] = { 1.0, 1.0, 1.0, 1.0 }; /* 拡散光の強さ */
 const static GLfloat lit_spc[4] = { 0.4f, 0.4f, 0.4f, 1.0 }; /* 鏡面反射光の強さ */
 const static GLfloat lit_pos[4] = { 0.0, 0.0, -9.0, 1.0 }; /* 光源の位置 */
-const char * MODELDIR = "Model3DS/";
-const char * MODELFILE1 = "Torus";
-const char * MODELFILE2 = "object_syn";
-const char * FORMAT1 = ".3ds";
-const char * FORMAT2 = ".obj";
+char * MODELDIR = "Model3DS/"; ///home/umakatsu/TextureTransfer/TextureTransfer/
+char * MODELFILE1 = "keyboard";
+char * MODELFILE2 = "cow";
+char * FORMAT1 = ".3ds";
+char * FORMAT2 = ".3ds";
 
 using namespace std;
 using namespace TextureTransfer;
@@ -57,6 +57,7 @@ double theta[3] = { 0.0, 0.0, 0.0 };
 enum CONTROLLER {
 	DECOMPOSITE, MANUPLATE, TRANSFER, SELECT
 } controllObject;
+bool textureOFF;
 bool displayTexture;
 
 //to project into window-coordinate
@@ -100,8 +101,9 @@ void DrawString(const char *str, void *font, float x, float y, float z) {
 void DrawController() {
 	glPushAttrib(GL_CURRENT_BIT | GL_DEPTH_BUFFER_BIT); // retrieve color and Z buffer
 	glColor3d(0, 0, 0);
-	char str[50];
-	switch (controllObject) {
+	char str[50], textureStr[50];
+	switch (controllObject)
+	{
 	case MANUPLATE:
 		sprintf(str, "[r] Mode : Manipulation");
 		break;
@@ -117,9 +119,19 @@ void DrawController() {
 	case SELECT:
 		sprintf(str, "[r] Mode : Selected texture");
 		break;
-
 	}
+
+	if(textureOFF)
+	{
+		sprintf(textureStr,"[p]Texture OFF");
+	}
+	else
+	{
+		sprintf(textureStr,"[p]Texture ON");
+	}
+
 	DrawString(str, font, 10, 20, 0);
+	DrawString(textureStr, font, -10, 19.5, 0);
 	glPopAttrib(); // write back color and Z buffer
 }
 
@@ -286,7 +298,8 @@ void display()
 			false, 4);
 //  DrawModelMonitor(0, 0, W_WIDTH, W_HEIGHT, models[1]);
 
-	if (controllObject) {
+	if (controllObject)
+	{
 		DrawTextureMonitor(0, W_HEIGHT / 2, W_WIDTH / 2, W_HEIGHT / 2,
 				models[0], 1);
 		DrawTextureMonitor(W_WIDTH / 2, W_HEIGHT / 2, W_WIDTH / 2, W_HEIGHT / 2,
@@ -338,11 +351,6 @@ void keyboard(unsigned char key, int x, int y) {
 		models[manupulation - 1]->mTrans[0] -= 0.5f;
 		break;
 
-	case 'v':
-		models[manupulation - 1]->mLSCM->mMesh->VertexSynthesis();
-		models[manupulation - 1]->mLSCM->mMesh->Save("Model3DS/object_syn.obj");
-		break;
-
 	//for direct input of clicked points from file
 	case 'g':
 	{
@@ -363,6 +371,9 @@ void keyboard(unsigned char key, int x, int y) {
 		}
 		break;
 
+	case 'p':
+		textureOFF=!textureOFF;
+		break;
 	case 's':
 		if (manupulation == 1) {
 			const char * f_str = "mesh1.bmp";
@@ -380,15 +391,18 @@ void keyboard(unsigned char key, int x, int y) {
 
 		PointsDisplay();
 
-		if (models[0]->IsMeshSelected() && models[1]->IsMeshSelected()) {
+		if (models[0]->IsMeshSelected() && models[1]->IsMeshSelected())
+		{
 			controller.SetContourPoints();
 			controller.AcquireMatching();
+
 			TexturePaste(true);
 			string newstr("New"); newstr+= MODELFILE2;
 			models[1]->Save3DModel(newstr.c_str());
 
 			IndexedMesh * lscmMesh = models[1]->mLSCM->mMesh.get();
-			REP(verIdx, lscmMesh->mVertices.size()) {
+			REP(verIdx, lscmMesh->mVertices.size())
+			{
 				//for warping texture mapping to size (W_WIDTH/2, W_HEIGHT/2)
 				double ratio_x = (W_WIDTH * 0.5 - 0)
 						/ (lscmMesh->mTexMax.x - lscmMesh->mTexMin.x);
@@ -424,7 +438,10 @@ void mouse(int button, int state, int x, int y)
 		}
 
 		//button OFF
-		if (state == GLUT_UP && button == GLUT_LEFT_BUTTON) {
+		if (state == GLUT_UP && button == GLUT_LEFT_BUTTON)
+		{
+//			TickCountAverageBegin();
+
 			models[manupulation - 1]->IncrementSumOfStrokes();
 
 			//reserver click points
@@ -447,8 +464,8 @@ void mouse(int button, int state, int x, int y)
 				models[manupulation - 1]->RenewMeshDataConstruct(2);
 				models[manupulation - 1]->mLSCM->mMesh->FindTextureMax();
 			}
-
 			point.clear();
+//			TickCountAverageEnd();
 		}
 	}
 	else if (controllObject == MANUPLATE)
@@ -604,12 +621,14 @@ void DrawModelMonitor(int x, int y, int w, int h, ViewingModel * model,
 
 	//Texture Transfer mode
 	//Selected Texture mode
-	if (!displayTexture) {
+	if (!displayTexture || textureOFF)
+	{
 		//  Rendering a model
 		glLineWidth(1);
 		glColor3f(1.0f, 0.0f, 0.0f);
 
-		REP(loopMesh, model->GetMeshSize()) {
+		REP(loopMesh, model->GetMeshSize())
+		{
 			GLdouble normal[3];
 			GLdouble vertex[3];
 //
@@ -618,11 +637,11 @@ void DrawModelMonitor(int x, int y, int w, int h, ViewingModel * model,
 //			GLfloat specular[4];
 
 			glBegin(GL_TRIANGLES);
-			REP(faceIdx,model->GetMeshFacesSize(loopMesh) ) {
-				REP(verIdx, model->GetMeshInnerFacesSize(loopMesh,faceIdx)) {
-					ColorSetting(
-							model->QueryVertexColor(loopMesh, faceIdx, verIdx),
-							true);
+			REP(faceIdx,model->GetMeshFacesSize(loopMesh) )
+			{
+				REP(verIdx, model->GetMeshInnerFacesSize(loopMesh,faceIdx))
+				{
+					ColorSetting(model->QueryVertexColor(loopMesh, faceIdx, verIdx), true);
 					model->QueryNormal(loopMesh, faceIdx, verIdx, normal);
 					model->QueryVertex(loopMesh, faceIdx, verIdx, vertex);
 					//				model->QueryAmbient(loop, id, ambient);
@@ -652,7 +671,8 @@ void DrawModelMonitor(int x, int y, int w, int h, ViewingModel * model,
 
 //		cout << "model->mTexture.size() -> " << model->mTexture.size() << endl;
 
-		REP(texNumber, model->mTexture.size()) {
+		REP(texNumber, model->mTexture.size())
+		{
 			//テクスチャセット
 			model->mTexture[texNumber]->bind();
 
@@ -662,17 +682,16 @@ void DrawModelMonitor(int x, int y, int w, int h, ViewingModel * model,
 			double ratio_y = (W_HEIGHT * 0.5 - 0)
 					/ (lscmMesh->mTexMax.y - lscmMesh->mTexMin.y); //
 
-//			cout << lscmMesh->mFaces.size() << endl;
-
 			glBegin(GL_TRIANGLES);
-			REP(loopFace, lscmMesh->mFaces.size()) {
+			REP(loopFace, lscmMesh->mFaces.size())
+			{
 				//対象の面を構成する頂点が同一のテクスチャ画像を参照しているかチェック
 				bool compose = false;
 
-				REP(loopVer, lscmMesh->mFaces[loopFace].size()) {
+				REP(loopVer, lscmMesh->mFaces[loopFace].size())
+				{
 					int verIndex = lscmMesh->mFaces[loopFace].at(loopVer);
-					if (lscmMesh->mVertices[verIndex].textureNumber
-							== texNumber) {
+					if (lscmMesh->mVertices[verIndex].textureNumber == texNumber) {
 						compose = true;
 						break;
 					}
@@ -681,7 +700,8 @@ void DrawModelMonitor(int x, int y, int w, int h, ViewingModel * model,
 				if (!compose)
 					continue;
 
-				REP(loopVer, lscmMesh->mFaces[loopFace].size()) {
+				REP(loopVer, lscmMesh->mFaces[loopFace].size())
+				{
 					int verIndex = lscmMesh->mFaces[loopFace].at(loopVer);
 					int texIndex = verIndex;
 					glMaterialfv(GL_FRONT_AND_BACK, GL_AMBIENT, lit_amb);
@@ -701,6 +721,7 @@ void DrawModelMonitor(int x, int y, int w, int h, ViewingModel * model,
 						vertex[2] = lscmMesh->mVertices[verIndex].point.z;
 						glColor3f(1.0f, 1.0f, 1.0f);
 						glTexCoord2fv(texcos);
+//						printf("verIdx=%d(%f,%f)\n",verIndex, texcos[0], texcos[1]);
 						glVertex3dv(vertex);
 					}
 				}
@@ -795,7 +816,8 @@ void DrawModelMonitor(int x, int y, int w, int h, ViewingModel * model,
 }
 
 void DrawTextureMonitor(int x, int y, int w, int h, ViewingModel * model,
-		const int & seprationW) {
+		const int & seprationW)
+{
 	glViewport(x, y, w, h);
 
 	glMatrixMode(GL_PROJECTION);
@@ -831,42 +853,110 @@ void DrawTextureMonitor(int x, int y, int w, int h, ViewingModel * model,
 
 	if (controllObject != SELECT)
 	{
-		REP(faceIdx, im->mFaces.size() )
+		if(!textureOFF)
 		{
-#if TEXTURE_TRIANGLES==0
-			Vector2 vertex[3];
-			REP(i,3){
-				int index = im->mFaces[faceIdx].at(i);
-				vertex[i].x = im->mVertices[index].tex_coord.x;
-				vertex[i].y = im->mVertices[index].tex_coord.y;
-				double val = im->mVertices[index].harmonicValue;
-				ColorSetting(val, true);
-			}
-			glVertex2f(vertex[0].x,vertex[0].y);
-			glVertex2f(vertex[1].x,vertex[1].y);
-			glVertex2f(vertex[1].x,vertex[1].y);
-			glVertex2f(vertex[2].x,vertex[2].y);
-			glVertex2f(vertex[2].x,vertex[2].y);
-			glVertex2f(vertex[0].x,vertex[0].y);
-#else
-			REP(verIdx, im->mFaces[faceIdx].size()) {
-				Vector2 vertex;
-				int index = im->mFaces[faceIdx].at(verIdx);
-				vertex.x = im->mVertices[index].tex_coord.x;
-				vertex.y = im->mVertices[index].tex_coord.y;
+			REP(texNumber, model->mTexture.size())
+			{
+				//テクスチャセット
+				model->mTexture[texNumber]->bind();
 
-				double val = im->mVertices[index].harmonicValue;
-				ColorSetting(val, true);
-				glVertex2f(vertex.x, vertex.y);
+				//for warping texture mapping to size (W_WIDTH/2, W_HEIGHT/2)
+				double ratio_x = (W_WIDTH * 0.5 - 0)
+						/ (im->mTexMax.x - im->mTexMin.x);
+				double ratio_y = (W_HEIGHT * 0.5 - 0)
+						/ (im->mTexMax.y - im->mTexMin.y);
+
+	//			cout << lscmMesh->mFaces.size() << endl;
+
+				glBegin(GL_TRIANGLES);
+				REP(loopFace, im->mFaces.size())
+				{
+					//対象の面を構成する頂点が同一のテクスチャ画像を参照しているかチェック
+					bool compose = false;
+
+					REP(loopVer, im->mFaces[loopFace].size())
+					{
+						int verIndex = im->mFaces[loopFace].at(loopVer);
+						if (im->mVertices[verIndex].textureNumber == texNumber) {
+							compose = true;
+							break;
+						}
+					}
+
+					if (!compose)
+						continue;
+
+					REP(loopVer, im->mFaces[loopFace].size())
+					{
+						int verIndex = im->mFaces[loopFace].at(loopVer);
+						int texIndex = verIndex;
+						glMaterialfv(GL_FRONT_AND_BACK, GL_AMBIENT, lit_amb);
+						glMaterialfv(GL_FRONT_AND_BACK, GL_DIFFUSE, lit_dif);
+						glMaterialfv(GL_FRONT_AND_BACK, GL_SPECULAR, lit_spc);
+						{
+							GLfloat texcos[2];
+							//TEXTURE_ARBを用いているためu-v座標を0-1にしなくてもよい
+							texcos[0] = (im->mVertices[texIndex].tex_coord.x
+									- im->mTexMin.x) * ratio_x;
+							texcos[1] = (W_HEIGHT / 2
+									- (im->mVertices[texIndex].tex_coord.y
+											- im->mTexMin.y) * ratio_y) - 0;
+							glColor3f(1.0f, 1.0f, 1.0f);
+
+							glTexCoord2fv(texcos);
+
+							GLfloat vertex[2];
+							vertex[0] = im->mVertices[verIndex].tex_coord.x;
+							vertex[1] = im->mVertices[verIndex].tex_coord.y;
+//							printf("(TEXTURE)verIdx=%d(%f,%f)\n",verIndex, texcos[0], texcos[1]);
+							glVertex2fv(vertex);
+						}
+					}
+				}
+				glEnd();
+				model->mTexture[texNumber]->unbind();
 			}
-#endif
+		}
+		else
+		{
+			REP(faceIdx, im->mFaces.size() )
+			{
+	#if TEXTURE_TRIANGLES==0
+				Vector2 vertex[3];
+				REP(i,3){
+					int index = im->mFaces[faceIdx].at(i);
+					vertex[i].x = im->mVertices[index].tex_coord.x;
+					vertex[i].y = im->mVertices[index].tex_coord.y;
+					double val = im->mVertices[index].harmonicValue;
+					ColorSetting(val, true);
+				}
+				glVertex2f(vertex[0].x,vertex[0].y);
+				glVertex2f(vertex[1].x,vertex[1].y);
+				glVertex2f(vertex[1].x,vertex[1].y);
+				glVertex2f(vertex[2].x,vertex[2].y);
+				glVertex2f(vertex[2].x,vertex[2].y);
+				glVertex2f(vertex[0].x,vertex[0].y);
+	#else
+				REP(verIdx, im->mFaces[faceIdx].size()) {
+					Vector2 vertex;
+					int index = im->mFaces[faceIdx].at(verIdx);
+					vertex.x = im->mVertices[index].tex_coord.x;
+					vertex.y = im->mVertices[index].tex_coord.y;
+
+					double val = im->mVertices[index].harmonicValue;
+					ColorSetting(val, true);
+					glVertex2f(vertex.x, vertex.y);
+				}
+	#endif
+			}
 		}
 	}
 	//in case of selecting parts
-	else {
-		assert(
-				model->mLSCM->mMesh->mVertices.size() == model->mLSCM->mMesh->mTextureCoords.size());
-		REP(faceIdx, model->mSelectedMesh.second.mFaces.size()) {
+	else
+	{
+		assert(model->mLSCM->mMesh->mVertices.size() == model->mLSCM->mMesh->mTextureCoords.size() );
+		REP(faceIdx, model->mSelectedMesh.second.mFaces.size())
+		{
 //	  for(unsigned int i=0; i<model->mSelectedMesh.second.mTextureCoords.size(); i+=3)
 //	  {
 			Vector2 vertex[3];
@@ -876,10 +966,14 @@ void DrawTextureMonitor(int x, int y, int w, int h, ViewingModel * model,
 								i)].tex_coord;
 			}
 
-			double value =
-					model->mLSCM->mMesh->mVertices[model->mSelectedMesh.second.mFaces[faceIdx].at(
+			double value;
+			value = model->mLSCM->mMesh->mVertices[model->mSelectedMesh.second.mFaces[faceIdx].at(
 							0)].harmonicValue;
 			ColorSetting(value, true);
+
+//			std::vector< CVD::Rgb< CVD::byte > > colour = model->mTexture[0]->getData();
+//			Vector2 tmp_colour;
+//			tmp_colour = model->mSelectedMesh.second.mVertices[model->mSelectedMesh.second.mFaces[faceIdx].at(0)].tex_coord;
 
 #if TEXTURE_TRIANGLES==0
 			glVertex2f(vertex[0].x,vertex[0].y);
@@ -890,7 +984,15 @@ void DrawTextureMonitor(int x, int y, int w, int h, ViewingModel * model,
 			glVertex2f(vertex[0].x,vertex[0].y);
 #else
 			glVertex2f(vertex[0].x, vertex[0].y);
+
+			value = model->mLSCM->mMesh->mVertices[model->mSelectedMesh.second.mFaces[faceIdx].at(
+							1)].harmonicValue;
+			ColorSetting(value, true);
 			glVertex2f(vertex[1].x, vertex[1].y);
+
+			value = model->mLSCM->mMesh->mVertices[model->mSelectedMesh.second.mFaces[faceIdx].at(
+							2)].harmonicValue;
+			ColorSetting(value, true);
 			glVertex2f(vertex[2].x, vertex[2].y);
 
 #endif
@@ -1002,14 +1104,14 @@ void TexturePaste(bool color) {
 				static_cast<const ::ImageType>(TextureRGB));
 
 		models[1]->mTexture.push_back(tmpTexture);
-
-//		cout << tmpTexture->getWidth() << "," << tmpTexture->getHeight() << endl;
-		cout << "Texture Transfer DONE!! Left -> Right" << endl;
+		cout << "Texture Transfer DONE!! Left -> Right. Texture Size = " << models[1]->mTexture.size() << endl;
 
 		//reset selected mesh
-		REP(i,2) {
+		REP(i,2)
+		{
 			models[i]->SetMeshSelected(false);
 		}
+
 		controller.InitHashmap();
 #if FEEDBACK_VISUALIZE == 1
 		cvNamedWindow(winName, 1);
@@ -1022,8 +1124,9 @@ void TexturePaste(bool color) {
 	}
 }
 
-void Init() {
-	glClearColor(1, 1, 1, 1);
+void Init()
+{
+	glClearColor(1,1,1,1);
 	glEnable(GL_DEPTH_TEST);
 	glEnable(GL_NORMALIZE);
 
@@ -1050,22 +1153,22 @@ void Init() {
 	models[1] = new ViewingModel(model2Name.c_str());
 	manupulation = 1;
 
-	models[0]->LoadTexture("texture1.bmp");
-	models[0]->mLSCM->run("CG", "");
+	models[0]->mLSCM->run("CG");
 	models[0]->mLSCM->mMesh->Save("Model3DS/object1.obj");
 	models[0]->mLSCM->mMesh->FindTextureMax();
 //
-	models[1]->LoadTexture("texture2.bmp");
-	models[1]->mLSCM->run("CG", "");
+	models[1]->mLSCM->run("CG");
 	models[1]->mLSCM->mMesh->Save("Model3DS/object2.obj");
 	models[1]->mLSCM->mMesh->FindTextureMax();
 
 	controller.InitHashmap();
 	displayTexture = true;
 	controllObject = SELECT;
+	textureOFF = true;
 }
 
-int main(int argc, char *argv[]) {
+int main(int argc, char *argv[])
+{
 	glutInit(&argc, argv);
 	glutInitDisplayMode(GLUT_RGBA | GLUT_DEPTH | GLUT_DOUBLE);
 	glutInitWindowSize(W_WIDTH, W_HEIGHT);
@@ -1082,6 +1185,21 @@ int main(int argc, char *argv[]) {
 		strcpy(filename, argv[1]);
 //		strcpy(filename, "Model3DS/debug_remote.txt");
 		fileInput = 1;
+	}
+	else if( argc == 3)
+	{
+//		FORMAT1 = strrchr(argv[1],'.');
+//		const char *file1 = (strrchr(argv[1],'/')) + 1;
+//
+//		FORMAT2 = strrchr(argv[2],'.');
+//		const char *file2 = strrchr(argv[2],'/');
+//
+//		cout << file1 << " " << endl;
+//		cout << file2 << " " << endl;
+	}
+	else if( argc == 4)
+	{
+
 	}
 	// start to display image
 	glutMainLoop();

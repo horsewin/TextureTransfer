@@ -11,6 +11,8 @@
 #include "TransferController.h"
 #include "MLS.h"
 
+#include "TickCounter.h"
+
 #include <stdio.h>
 #include <iostream>
 #include <cmath>
@@ -110,6 +112,7 @@ namespace TextureTransfer
 
 	void TransferController::AcquireMatching()
 	{
+//		TickCountAverageBegin();
 		IplImage * src = cvCloneImage(mInput1);
 	#if VISUALIZE == 1
 		cvNamedWindow("1", 1 );
@@ -175,6 +178,9 @@ namespace TextureTransfer
 		IplImage * i1 = cvLoadImage("mesh1.bmp", 1);
 
 		mls.MLSWarpImage(i1, &input, dst, &output);
+
+//		TickCountAverageEnd();
+
 		cvSaveImage("warping1.bmp", dst);
 	#if VISUALIZE == 1
 //		REP(i,mls.m_dst.size()){
