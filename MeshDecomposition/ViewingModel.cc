@@ -215,8 +215,8 @@ namespace TextureTransfer
 
 		if(!mHasTexture)
 		{
+			LoadTexture("texture1.bmp");
 		}
-		LoadTexture("texture1.bmp");
 
 
 		//Count all verteices up
@@ -251,7 +251,7 @@ namespace TextureTransfer
 		}
 		else
 		{
-//			LoadTextures(m_model, "Model3DS");
+			LoadTextures(m_model, "Model3DS");
 		}
 
 		//メッシュ分メモリ確保
@@ -510,7 +510,7 @@ namespace TextureTransfer
 
 
 		// Mesh loop
-		for(int texNumber=0; texNumber<sModel->nmeshes; texNumber++)
+		REP(texNumber,sModel->nmeshes)
 		{
 			ostringstream meshFilename;
 			meshFilename << "mesh" << texNumber;
@@ -637,12 +637,13 @@ namespace TextureTransfer
 
 		//copy all new materials to ARMM dir
 		ostringstream com;
+		com << "mkdir " << DATABASEDIR << filename << " && ";
 		com << "cp " << saveName.str().c_str() << " ";
 		REP(m,sModel->nmaterials)
 		{
 			com << textureFilename[m].str().c_str() << " ";
 		}
-		com << "~/NewARDiorama/ARDiorama/ARMM/Data/Model1/";
+		com << DATABASEDIR << filename;
 
 		if (system(com.str().c_str())){
 
@@ -650,14 +651,12 @@ namespace TextureTransfer
 		cout << "Save 3DS..." << saveName.str().c_str() << endl;
 	}
 
-	deque<Texture *> ViewingModel::LoadTextures(::Lib3dsFile * pModel,
+	void ViewingModel::LoadTextures(::Lib3dsFile * pModel,
 			string dirpath)
 	{
 		assert( pModel);
 
-		// Creation of the texture's list
-		deque<Texture *> texList;
-		texList.clear();
+		mTexture.clear();
 
 		// Load a set of textures
 		REP(ii,pModel->nmaterials)
@@ -679,7 +678,7 @@ namespace TextureTransfer
 				::ImageType TextureRGB = (img_load(textureFilename));
 				Texture* tmpTexture = new Texture(
 						static_cast<const ::ImageType>(TextureRGB));
-				texList.push_back(tmpTexture);
+				mTexture.push_back(tmpTexture);
 			}
 			else
 			{
@@ -687,12 +686,10 @@ namespace TextureTransfer
 				cerr << "Model name is " << mModelname << endl;
 			}
 		}
-		if(texList.size() == 0)
+		if(mTexture.size() == 0)
 		{
 			mHasTexture = false;
 		}
-
-		return (texList);
 	}
 
 	void ViewingModel::VertexCorrection(void) {

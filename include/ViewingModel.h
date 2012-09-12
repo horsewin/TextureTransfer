@@ -23,6 +23,8 @@
 #include <deque>
 #include <cstring>
 
+static const char * DATABASEDIR = "/home/umakatsu/Dropbox/Lab/ModelDatabase/";
+
 //-------------------------------------------------------------------
 // Structs
 //-------------------------------------------------------------------
@@ -31,7 +33,6 @@ namespace TextureTransfer
 {
 	class LSCM;
 	class Texture;
-
 	//メッシュ構造体
 	struct Mesh
 	{
@@ -104,7 +105,7 @@ namespace TextureTransfer
 
 	  void Load3DSModel();
 	  void LoadObjModel(const char * modelName = NULL);
-	  std::deque<Texture *> LoadTextures(::Lib3dsFile * pModel, std::string dirpath);
+	  void LoadTextures(::Lib3dsFile * pModel, std::string dirpath);
 
 	  void SetSelectedMeshData(const int& loopVer);
 	  void SetSelectedFaces(const int& loopTex);
