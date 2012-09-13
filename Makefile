@@ -45,8 +45,8 @@ Decomposition = 	Obj/ViewingModel.o\
 Transfer = Obj/TransferController.o\
 	Obj/MLS.o
 	
-Object = $(Decomposition)\
-	Obj/main.o\
+Object = Obj/main.o\
+	$(Decomposition)\
 	Obj/Bitmap.o\
 	$(Models)\
 	$(Transfer)

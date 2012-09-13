@@ -23,8 +23,6 @@
 #include <deque>
 #include <cstring>
 
-static const char * DATABASEDIR = "/home/umakatsu/Dropbox/Lab/ModelDatabase/";
-
 //-------------------------------------------------------------------
 // Structs
 //-------------------------------------------------------------------
@@ -33,6 +31,7 @@ namespace TextureTransfer
 {
 	class LSCM;
 	class Texture;
+
 	//メッシュ構造体
 	struct Mesh
 	{
@@ -63,14 +62,15 @@ namespace TextureTransfer
 	//-------------------------------------------------------------------
 	// Class definition
 	//-------------------------------------------------------------------
-	class ViewingModel
-	{
+	class ViewingModel{
 	 public:
 	  ViewingModel(const char * name = NULL);
 	  ~ViewingModel();
 
+	  bool RunLSCM();
 	  void Save3DModel(const char * filename);
 
+	  bool LoadTexture(const char * filename);
 	  bool CheckFittingVertices(GLint *viewport, GLdouble *modelview, GLdouble *projection, cv::Point3d start_point, cv::Point3d end_point, bool glMouse = true);
 	  void UpdateMatrix();
 	  void CorrespondTexCoord(GLint *viewport, GLdouble *modelview, GLdouble *projection,
@@ -96,8 +96,6 @@ namespace TextureTransfer
 
 	 private:
 	  void Load3DModel();
-	  bool LoadTexture(const char * filename);
-
 	  void VertexCorrection();
 	  void ConvertDataStructure();
 	  bool LoadMatrixFrom3ds();
@@ -105,7 +103,7 @@ namespace TextureTransfer
 
 	  void Load3DSModel();
 	  void LoadObjModel(const char * modelName = NULL);
-	  void LoadTextures(::Lib3dsFile * pModel, std::string dirpath);
+	  std::deque<Texture *> LoadTextures(::Lib3dsFile * pModel, std::string dirpath);
 
 	  void SetSelectedMeshData(const int& loopVer);
 	  void SetSelectedFaces(const int& loopTex);
@@ -118,7 +116,6 @@ namespace TextureTransfer
 
 	  std::pair<int,IndexedMesh> mSelectedMesh; //first : an index for the matrix having harmonic field(mTexparts), second: a set of meshes
 
-	  //for observation in OpenGL window
 	  float  mScales;
 	  double mAngles[3];
 	  double mTrans[3];
@@ -133,7 +130,6 @@ namespace TextureTransfer
 
 	  std::vector< boost::shared_ptr<IndexedMesh> > mMesh;
 
-	  //for calculation of mesh decomposition
 	  Eigen::SparseMatrix<double> sparse_laplacian;
 	  Eigen::VectorXd b, mHarmonicValue;
 

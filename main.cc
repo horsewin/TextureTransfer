@@ -7,7 +7,7 @@
 #include <stdio.h>
 
 #include "OpenGL.h"
-//#include "TickCounter.h"
+#include "TickCounter.h"
 
 #include <cvd/image_io.h>
 
@@ -27,21 +27,21 @@
 #define VISUALIZE 0 //OpenCVのウィンドウ上にテクスチャ展開の点群を表示する
 #define FEEDBACK_VISUALIZE 0 //OpenCVから計算してきた輪郭情報をGL上に持っていくときの輪郭情報を表示する
 
-using namespace std;
-using namespace TextureTransfer;
-
 const int SEPARATION = 5;
 const static GLfloat lit_amb[4] = { 0.4f, 0.4f, 0.4f, 1.0 }; /* 環境光の強さ */
 const static GLfloat lit_dif[4] = { 1.0, 1.0, 1.0, 1.0 }; /* 拡散光の強さ */
 const static GLfloat lit_spc[4] = { 0.4f, 0.4f, 0.4f, 1.0 }; /* 鏡面反射光の強さ */
 const static GLfloat lit_pos[4] = { 0.0, 0.0, -9.0, 1.0 }; /* 光源の位置 */
-char * MODELFILE1 = "keyboard";
+char * MODELDIR = "Model3DS/"; ///home/umakatsu/TextureTransfer/TextureTransfer/
+char * MODELFILE1 = "Torus";
 char * MODELFILE2 = "cow";
 char * FORMAT1 = ".3ds";
 char * FORMAT2 = ".3ds";
 
+using namespace std;
+using namespace TextureTransfer;
 //---------------------------------------------------------------------------
-// Globalls M
+// Global
 //---------------------------------------------------------------------------
 short fileInput = 0;
 char filename[50];
@@ -359,8 +359,15 @@ void keyboard(unsigned char key, int x, int y) {
 		Texture * tmpTexture = new Texture(
 				static_cast<const ::ImageType>(TextureRGB));
 
-		models[1]->mTexture.clear();
-		models[1]->mTexture.push_back(tmpTexture);
+		REP(num,2){
+			REP(id, models[num]->mLSCM->mMesh->mVertices.size())
+			{
+				//テクスチャ画像番号を更新
+				models[num]->mLSCM->mMesh->mVertices[id].textureNumber =
+						models[num]->mTexture.size();
+			}
+			models[num]->mTexture.push_back(tmpTexture);
+		}
 		cout << "Texture Transfer DONE!! Left -> Right. Texture Size = " << models[1]->mTexture.size() << endl;
 
 		break;
@@ -689,6 +696,8 @@ void DrawModelMonitor(int x, int y, int w, int h, ViewingModel * model,
 			double ratio_y = (W_HEIGHT * 0.5 - 0)
 					/ (lscmMesh->mTexMax.y - lscmMesh->mTexMin.y); //
 
+//			cout << lscmMesh->mFaces.size() << endl;
+
 			glBegin(GL_TRIANGLES);
 			REP(loopFace, lscmMesh->mFaces.size())
 			{
@@ -862,8 +871,6 @@ void DrawTextureMonitor(int x, int y, int w, int h, ViewingModel * model,
 	{
 		if(!textureOFF)
 		{
-			IndexedMesh * lscmMesh = model->mLSCM->mMesh.get();
-//			cout << "<TEXTURE>model->mTexture.size() -> " << model->mTexture.size() << endl;
 			REP(texNumber, model->mTexture.size())
 			{
 				//テクスチャセット
@@ -871,22 +878,22 @@ void DrawTextureMonitor(int x, int y, int w, int h, ViewingModel * model,
 
 				//for warping texture mapping to size (W_WIDTH/2, W_HEIGHT/2)
 				double ratio_x = (W_WIDTH * 0.5 - 0)
-						/ (lscmMesh->mTexMax.x - lscmMesh->mTexMin.x);
+						/ (im->mTexMax.x - im->mTexMin.x);
 				double ratio_y = (W_HEIGHT * 0.5 - 0)
-						/ (lscmMesh->mTexMax.y - lscmMesh->mTexMin.y);
+						/ (im->mTexMax.y - im->mTexMin.y);
 
 	//			cout << lscmMesh->mFaces.size() << endl;
 
 				glBegin(GL_TRIANGLES);
-				REP(loopFace, lscmMesh->mFaces.size())
+				REP(loopFace, im->mFaces.size())
 				{
 					//対象の面を構成する頂点が同一のテクスチャ画像を参照しているかチェック
 					bool compose = false;
 
-					REP(loopVer, lscmMesh->mFaces[loopFace].size())
+					REP(loopVer, im->mFaces[loopFace].size())
 					{
-						int verIndex = lscmMesh->mFaces[loopFace].at(loopVer);
-						if (lscmMesh->mVertices[verIndex].textureNumber == texNumber) {
+						int verIndex = im->mFaces[loopFace].at(loopVer);
+						if (im->mVertices[verIndex].textureNumber == texNumber) {
 							compose = true;
 							break;
 						}
@@ -895,28 +902,28 @@ void DrawTextureMonitor(int x, int y, int w, int h, ViewingModel * model,
 					if (!compose)
 						continue;
 
-					REP(loopVer, lscmMesh->mFaces[loopFace].size())
+					REP(loopVer, im->mFaces[loopFace].size())
 					{
-						int verIndex = lscmMesh->mFaces[loopFace].at(loopVer);
+						int verIndex = im->mFaces[loopFace].at(loopVer);
 						int texIndex = verIndex;
-//						glMaterialfv(GL_FRONT_AND_BACK, GL_AMBIENT, lit_amb);
-//						glMaterialfv(GL_FRONT_AND_BACK, GL_DIFFUSE, lit_dif);
-//						glMaterialfv(GL_FRONT_AND_BACK, GL_SPECULAR, lit_spc);
+						glMaterialfv(GL_FRONT_AND_BACK, GL_AMBIENT, lit_amb);
+						glMaterialfv(GL_FRONT_AND_BACK, GL_DIFFUSE, lit_dif);
+						glMaterialfv(GL_FRONT_AND_BACK, GL_SPECULAR, lit_spc);
 						{
 							GLfloat texcos[2];
 							//TEXTURE_ARBを用いているためu-v座標を0-1にしなくてもよい
-							texcos[0] = (lscmMesh->mVertices[texIndex].tex_coord.x
-									- lscmMesh->mTexMin.x) * ratio_x;
+							texcos[0] = (im->mVertices[texIndex].tex_coord.x
+									- im->mTexMin.x) * ratio_x;
 							texcos[1] = (W_HEIGHT / 2
-									- (lscmMesh->mVertices[texIndex].tex_coord.y
-											- lscmMesh->mTexMin.y) * ratio_y) - 0;
+									- (im->mVertices[texIndex].tex_coord.y
+											- im->mTexMin.y) * ratio_y) - 0;
 							glColor3f(1.0f, 1.0f, 1.0f);
 
 							glTexCoord2fv(texcos);
 
 							GLfloat vertex[2];
-							vertex[0] = lscmMesh->mVertices[verIndex].tex_coord.x;
-							vertex[1] = lscmMesh->mVertices[verIndex].tex_coord.y;
+							vertex[0] = im->mVertices[verIndex].tex_coord.x;
+							vertex[1] = im->mVertices[verIndex].tex_coord.y;
 //							printf("(TEXTURE)verIdx=%d(%f,%f)\n",verIndex, texcos[0], texcos[1]);
 							glVertex2fv(vertex);
 						}
@@ -946,8 +953,7 @@ void DrawTextureMonitor(int x, int y, int w, int h, ViewingModel * model,
 				glVertex2f(vertex[2].x,vertex[2].y);
 				glVertex2f(vertex[0].x,vertex[0].y);
 	#else
-				REP(verIdx, im->mFaces[faceIdx].size())
-				{
+				REP(verIdx, im->mFaces[faceIdx].size()) {
 					Vector2 vertex;
 					int index = im->mFaces[faceIdx].at(verIdx);
 					vertex.x = im->mVertices[index].tex_coord.x;
@@ -965,8 +971,7 @@ void DrawTextureMonitor(int x, int y, int w, int h, ViewingModel * model,
 	else
 	{
 		assert(model->mLSCM->mMesh->mVertices.size() == model->mLSCM->mMesh->mTextureCoords.size() );
-		REP(faceIdx, model->mSelectedMesh.second.mFaces.size())
-		{
+		REP(faceIdx, model->mSelectedMesh.second.mFaces.size()) {
 //	  for(unsigned int i=0; i<model->mSelectedMesh.second.mTextureCoords.size(); i+=3)
 //	  {
 			Vector2 vertex[3];
@@ -1026,8 +1031,7 @@ void DrawTextureMonitor(int x, int y, int w, int h, ViewingModel * model,
 	glEnable(GL_DEPTH_TEST);
 }
 
-void PointsDisplay()
-{
+void PointsDisplay() {
 	IndexedMesh * tmpMesh = models[manupulation - 1]->mLSCM->mMesh.get();
 	double ratio_x = (W_WIDTH * 0.5 - 1)
 			/ (tmpMesh->mTexMax.x - tmpMesh->mTexMin.x);
@@ -1043,8 +1047,7 @@ void PointsDisplay()
 
 	controller.mMeshes[manupulation - 1].clear();
 	assert(input);
-	REP(i,models[manupulation-1]->mSelectedMesh.second.mVertices.size())
-	{
+	REP(i,models[manupulation-1]->mSelectedMesh.second.mVertices.size()) {
 		//実際に使われているvertexかどうか
 		if (!models[manupulation - 1]->mSelectedMesh.second.mVertices[i].locked)
 			continue;
@@ -1105,11 +1108,10 @@ void TexturePaste(bool color) {
 #endif
 //		}
 
-		REP(id, controller.mMeshes[1].size())
-		{
+		REP(id, controller.mMeshes[1].size()) {
 			//テクスチャ画像番号を更新
 			models[1]->mLSCM->mMesh->mVertices[controller.mMeshes[1].at(id).first].textureNumber =
-					models[1]->mTexture.size();
+					1;
 		}
 
 		::ImageType TextureRGB = (CVD::img_load("warping1.bmp"));
@@ -1117,15 +1119,15 @@ void TexturePaste(bool color) {
 				static_cast<const ::ImageType>(TextureRGB));
 
 		models[1]->mTexture.push_back(tmpTexture);
-		cout << "Texture Transfer DONE!! Left -> Right. Texture Size = " << models[1]->mTexture.size() << endl;
+
+//		cout << tmpTexture->getWidth() << "," << tmpTexture->getHeight() << endl;
+		cout << "Texture Transfer DONE!! Left -> Right" << endl;
 
 		//reset selected mesh
-		REP(i,2)
-		{
+		REP(i,2) {
 			models[i]->SetMeshSelected(false);
 		}
-
-//		controller.InitHashmap();
+		controller.InitHashmap();
 #if FEEDBACK_VISUALIZE == 1
 		cvNamedWindow(winName, 1);
 		cvShowImage( winName, src);
@@ -1137,9 +1139,8 @@ void TexturePaste(bool color) {
 	}
 }
 
-void Init()
-{
-	glClearColor(1,1,1,1);
+void Init() {
+	glClearColor(1, 1, 1, 1);
 	glEnable(GL_DEPTH_TEST);
 	glEnable(GL_NORMALIZE);
 
@@ -1156,31 +1157,34 @@ void Init()
 	glShadeModel(GL_SMOOTH);
 
 	//load 3ds model
-	ostringstream model1Name;
-	model1Name << DATABASEDIR << MODELFILE1 << "/" << MODELFILE1 << FORMAT1;
-	ostringstream model2Name;
-	model2Name << DATABASEDIR << MODELFILE2 << "/" << MODELFILE2 << FORMAT2;
+	string model1Name(MODELDIR);
+	model1Name += MODELFILE1;
+	model1Name += FORMAT1;
+	string model2Name(MODELDIR);
+	model2Name += MODELFILE2;
+	model2Name += FORMAT2;
 
-	models[0] = new ViewingModel(model1Name.str().c_str());
-	models[1] = new ViewingModel(model2Name.str().c_str());
+	models[0] = new ViewingModel(model1Name.c_str());
+	models[1] = new ViewingModel(model2Name.c_str());
 	manupulation = 1;
 
+	models[0]->LoadTexture("texture1.bmp");
 	models[0]->mLSCM->run("CG");
-//	models[0]->mLSCM->mMesh->Save("Model3DS/object1.obj");
+	models[0]->mLSCM->mMesh->Save("Model3DS/object1.obj");
 	models[0]->mLSCM->mMesh->FindTextureMax();
 //
+	models[1]->LoadTexture("texture2.bmp");
 	models[1]->mLSCM->run("CG");
-//	models[1]->mLSCM->mMesh->Save("Model3DS/object2.obj");
+	models[1]->mLSCM->mMesh->Save("Model3DS/object2.obj");
 	models[1]->mLSCM->mMesh->FindTextureMax();
 
 	controller.InitHashmap();
 	displayTexture = true;
 	controllObject = SELECT;
-	textureOFF = true;
+	textureOFF = false;
 }
 
-int main(int argc, char *argv[])
-{
+int main(int argc, char *argv[]) {
 	glutInit(&argc, argv);
 	glutInitDisplayMode(GLUT_RGBA | GLUT_DEPTH | GLUT_DOUBLE);
 	glutInitWindowSize(W_WIDTH, W_HEIGHT);
