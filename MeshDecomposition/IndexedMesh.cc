@@ -52,6 +52,7 @@ namespace TextureTransfer
 		mVertices.clear();
 		mFaces.clear();
 		mTextureFaces.clear();
+		mTexnumVernum.clear();
 	}
 
 	IndexedMesh::~IndexedMesh()

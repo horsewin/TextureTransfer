@@ -48,6 +48,7 @@ using namespace boost::numeric;
 using namespace Eigen;
 
 int ind1, ind2;
+static const char * DATABASEDIR = "/home/umakatsu/Dropbox/Lab/ModelDatabase/";
 
 namespace {
 	inline void SetAdjacentValue(const int & i1, const int & i2, const int & i3,
@@ -280,7 +281,17 @@ namespace TextureTransfer
 			//頂点データと法線データをインデックスに合わせて格納
 			for (int loopVer = 0; loopVer < mesh->nvertices; ++loopVer)
 			{
-				Vector3 tmp(mesh->vertices[loopVer][0],mesh->vertices[loopVer][1],mesh->vertices[loopVer][2]);
+				double scale = 1;
+				Vector3 tmp(mesh->vertices[loopVer][0]/scale, mesh->vertices[loopVer][1]/scale, mesh->vertices[loopVer][2]/scale);
+
+				//for Yasuhara's cube
+//				double scale = 0.1;
+//				Vector3 tmp(mesh->vertices[loopVer][0]/scale-0.193, mesh->vertices[loopVer][1]/scale+8.15, mesh->vertices[loopVer][2]/scale-0.113);
+
+				//for Yasuhara's MT
+//				double scale = 0.1;
+//				Vector3 tmp(mesh->vertices[loopVer][0]/scale+0.797, mesh->vertices[loopVer][1]/scale+0.923, mesh->vertices[loopVer][2]/scale-0.191);
+
 //				tmp = mesh->vertices[loopVer];
 //				printf("%f,%f,%f\n",mesh->vertices[loopVer][0], mesh->vertices[loopVer][1], mesh->vertices[loopVer][2]);
 //				if(mesh->texcos) printf("%f,%f\n",mesh->texcos[loopVer][0], mesh->texcos[loopVer][1]);
@@ -475,9 +486,19 @@ namespace TextureTransfer
 		}
 
 		ostringstream com1, com2;
-		com1 << "cp texture2.bmp " << sModel->materials[0]->texture1_map.name;
-		if (system(com1.str().c_str())) {
-			cerr << "Error in ViewingModel: System command is not valid";
+		if(!mTexture.empty())
+		{
+			com1 << "cp " << mTexture[0]->GetName() << " " << sModel->materials[0]->texture1_map.name;
+			if (system(com1.str().c_str())) {
+				cerr << "Error in ViewingModel: System command is not valid";
+			}
+		}
+		else
+		{
+			com1 << "cp texture2.bmp " << sModel->materials[0]->texture1_map.name;
+			if (system(com1.str().c_str())) {
+				cerr << "Error in ViewingModel: System command is not valid";
+			}
 		}
 		com2 << "cp warping1.bmp " << sModel->materials[1]->texture1_map.name;
 		if (system(com2.str().c_str())) {
@@ -578,9 +599,10 @@ namespace TextureTransfer
 				sModel->meshes[texNumber]->vertices[index][2] = vertices[index].point.z;
 
 				//u-v座標系を0-1にする
+				//2012.9.11 OSGで読み込ませるためにv座標を上下反転させている
 				sModel->meshes[texNumber]->texcos[index][0] =
 						(vertices[index].tex_coord.x - lscmMesh->mTexMin.x) * ratio_x / img_width;;
-				sModel->meshes[texNumber]->texcos[index][1] =
+				sModel->meshes[texNumber]->texcos[index][1] = 1 -
 						((img_height - (vertices[index].tex_coord.y - lscmMesh->mTexMin.y) * ratio_y) - 0) / img_height;
 #if DEBUG_TEXTURE_COORD
 				cout << sModel->meshes[texNumber]->texcos[index][0] << "," << sModel->meshes[texNumber]->texcos[index][1] << endl;
@@ -592,11 +614,13 @@ namespace TextureTransfer
 			{
 				// Reserve the face setting
 				sModel->meshes[texNumber]->faces[faceIdx].material = texNumber;
+
 				// Reserve for each vertex
+				vector<int> tmpInd;
 				REP(verIdx, faces[faceIdx].size())
 				{
 					int index = faces[faceIdx].at(verIdx);
-					sModel->meshes[texNumber]->faces[faceIdx].index[verIdx] = index;
+					tmpInd.push_back(index);
 
 //					sModel->meshes[texNumber]->vertices[index][0] = vertices[index].point.x; // 6\30 21:46
 //					sModel->meshes[texNumber]->vertices[index][1] = vertices[index].point.y;
@@ -611,7 +635,10 @@ namespace TextureTransfer
 //					sModel->meshes[texNumber]->texcos[index][1] =
 //							((W_HEIGHT / 2 - (lscmMesh->mVertices[index].tex_coord.y - lscmMesh->mTexMin.y) * ratio_y) - 1) / (W_HEIGHT / 2);
 				}
-			}
+				sModel->meshes[texNumber]->faces[faceIdx].index[0] = tmpInd[0];
+				sModel->meshes[texNumber]->faces[faceIdx].index[1] = tmpInd[1];
+				sModel->meshes[texNumber]->faces[faceIdx].index[2] = tmpInd[2];
+				}
 		}
 
 		ostringstream saveName;
@@ -620,12 +647,13 @@ namespace TextureTransfer
 
 		//copy all new materials to ARMM dir
 		ostringstream com;
+		com << "mkdir " << DATABASEDIR << filename << " && ";
 		com << "cp " << saveName.str().c_str() << " ";
 		REP(m,sModel->nmaterials)
 		{
 			com << textureFilename[m].str().c_str() << " ";
 		}
-		com << "~/NewARDiorama/ARDiorama/ARMM/Data/Model1/";
+		com << DATABASEDIR << filename;
 
 		if (system(com.str().c_str())){
 
@@ -658,7 +686,7 @@ namespace TextureTransfer
 				// Create a texture object and set it to the list
 				::ImageType TextureRGB = (img_load(textureFilename));
 				Texture* tmpTexture = new Texture(
-						static_cast<const ::ImageType>(TextureRGB));
+						static_cast<const ::ImageType>(TextureRGB), textureFilename.c_str());
 				texList.push_back(tmpTexture);
 			}
 		}
@@ -1124,6 +1152,7 @@ namespace TextureTransfer
 #endif
 				//init texture number information
 				mLSCM->mMesh->mVertices[verIdx].textureNumber = loopMesh;
+				mLSCM->mMesh->mTexnumVernum.push_back(pair<int,int>(loopMesh, verIdx));
 
 			}
 		}
@@ -1292,7 +1321,7 @@ namespace TextureTransfer
 	{
 		::ImageType TextureRGB = (img_load(filename));
 		Texture * tmpTexture = new Texture(
-				static_cast<const ::ImageType>(TextureRGB));
+				static_cast<const ::ImageType>(TextureRGB), filename);
 
 		mTexture.push_back(tmpTexture);
 

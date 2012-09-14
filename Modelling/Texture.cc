@@ -5,6 +5,8 @@
 #include <TooN/se3.h>
 
 #include <vector>
+#include <cstdio>
+#include <cstring>
 
 #include <boost/scoped_array.hpp>
 #include <boost/serialization/serialization.hpp>
@@ -50,12 +52,13 @@ namespace{
 namespace TextureTransfer
 {
 
-	Texture::Texture( const CVD::SubImage< CVD::Rgb< CVD::byte > > &  src ):
+	Texture::Texture( const CVD::SubImage< CVD::Rgb< CVD::byte > > &  src , const char * name):
 		tex_width( src.size( ).x ),
 		tex_height( src.size( ).y ),
 		data( src.totalsize( ) )
 	{
 	//std::memcpy(data.get(), src.data(), sizeof(Buftype) * src.totalsize());
+		strcpy(mName, name);
 		std::copy( src.data( ), src.data( ) + src.totalsize( ) - 1, data.begin( ) );
 		tex_id = createGLTexture( & data[ 0 ], tex_width, tex_height );
 	}

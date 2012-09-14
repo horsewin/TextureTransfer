@@ -20,7 +20,7 @@ namespace TextureTransfer
 	public:
 		typedef CVD::Rgb< CVD::byte > Buftype;
 
-		explicit Texture( const CVD::SubImage< Texture::Buftype > &  src );
+		explicit Texture( const CVD::SubImage< Texture::Buftype > &  src , const char * name);
 		Texture( const std::vector< Buftype > & data, size_t width, size_t height );
 		~Texture( void );
 
@@ -36,6 +36,7 @@ namespace TextureTransfer
 		void  draw( void ) const;//for debug
 		int		getTex_id( void ) const{ return (int)tex_id; }
 
+		const char * GetName(void) const { return mName;}
 
 	private:
 		unsigned  tex_width;
@@ -43,6 +44,8 @@ namespace TextureTransfer
 		std::vector< Buftype >  data;
 
 		unsigned  tex_id;
+
+		char mName[50];
 	};
 
 }

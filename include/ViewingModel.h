@@ -120,6 +120,8 @@ namespace TextureTransfer
 	  double mAngles[3];
 	  double mTrans[3];
 
+	  std::vector< boost::shared_ptr<IndexedMesh> > mMesh;
+
 	 private:
 
 	  char * mModelname;
@@ -128,10 +130,11 @@ namespace TextureTransfer
 	  std::vector<int> mMinStartIndex;
 	  std::vector<int> mMinEndIndex;
 
-	  std::vector< boost::shared_ptr<IndexedMesh> > mMesh;
 
 	  Eigen::SparseMatrix<double> sparse_laplacian;
 	  Eigen::VectorXd b, mHarmonicValue;
+
+//	  std::vector< boost::shared_ptr<IndexedMesh> > mMesh;
 
 	  bool mIsConvert;
 	  bool mIsLoadMatrix;

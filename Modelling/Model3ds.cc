@@ -731,7 +731,7 @@ deque<Texture *> Model3DS::_LoadTextures(Lib3dsFile * pModel, string dirpath) {
 			// Create a texture object and set it to the list
 			::ImageType TextureRGB = (img_load(textureFilename));
 			Texture* tmpTexture = new Texture(
-					static_cast<const ::ImageType> (TextureRGB));
+					static_cast<const ::ImageType> (TextureRGB), textureFilename.c_str());
 			texList.push_back(tmpTexture);
 		}
 	}

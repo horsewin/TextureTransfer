@@ -33,7 +33,7 @@ const static GLfloat lit_dif[4] = { 1.0, 1.0, 1.0, 1.0 }; /* 拡散光の強さ 
 const static GLfloat lit_spc[4] = { 0.4f, 0.4f, 0.4f, 1.0 }; /* 鏡面反射光の強さ */
 const static GLfloat lit_pos[4] = { 0.0, 0.0, -9.0, 1.0 }; /* 光源の位置 */
 char * MODELDIR = "Model3DS/"; ///home/umakatsu/TextureTransfer/TextureTransfer/
-char * MODELFILE1 = "Torus";
+char * MODELFILE1 = "keyboard";
 char * MODELFILE2 = "cow";
 char * FORMAT1 = ".3ds";
 char * FORMAT2 = ".3ds";
@@ -355,11 +355,12 @@ void keyboard(unsigned char key, int x, int y) {
 	//for direct input of clicked points from file
 	case 'g':
 	{
-		::ImageType TextureRGB = (CVD::img_load("texture2.bmp"));
-		Texture * tmpTexture = new Texture(
-				static_cast<const ::ImageType>(TextureRGB));
+		const char * topTexture = "key2.bmp";
+		::ImageType TextureRGB = (CVD::img_load(topTexture));
+		Texture * tmpTexture = new Texture(static_cast<const ::ImageType>(TextureRGB), topTexture);
 
-		REP(num,2){
+		for(int num=0; num<1; num++)
+		{
 			REP(id, models[num]->mLSCM->mMesh->mVertices.size())
 			{
 				//テクスチャ画像番号を更新
@@ -918,7 +919,10 @@ void DrawTextureMonitor(int x, int y, int w, int h, ViewingModel * model,
 									- (im->mVertices[texIndex].tex_coord.y
 											- im->mTexMin.y) * ratio_y) - 0;
 							glColor3f(1.0f, 1.0f, 1.0f);
-
+							int tmpTexID = model->mLSCM->mMesh->mTexnumVernum[verIndex].first;
+							int tmpVerID = model->mLSCM->mMesh->mTexnumVernum[verIndex].second;
+//							texcos[0] = model->mMesh[tmpTexID]->mVertices[tmpVerID].tex_coord.x;
+//							texcos[1] = model->mMesh[tmpTexID]->mVertices[tmpVerID].tex_coord.y;
 							glTexCoord2fv(texcos);
 
 							GLfloat vertex[2];
@@ -971,7 +975,8 @@ void DrawTextureMonitor(int x, int y, int w, int h, ViewingModel * model,
 	else
 	{
 		assert(model->mLSCM->mMesh->mVertices.size() == model->mLSCM->mMesh->mTextureCoords.size() );
-		REP(faceIdx, model->mSelectedMesh.second.mFaces.size()) {
+		REP(faceIdx, model->mSelectedMesh.second.mFaces.size())
+		{
 //	  for(unsigned int i=0; i<model->mSelectedMesh.second.mTextureCoords.size(); i+=3)
 //	  {
 			Vector2 vertex[3];
@@ -1114,9 +1119,10 @@ void TexturePaste(bool color) {
 					1;
 		}
 
-		::ImageType TextureRGB = (CVD::img_load("warping1.bmp"));
+		const char * tex1 = "warping1.bmp";
+		::ImageType TextureRGB = (CVD::img_load(tex1));
 		Texture * tmpTexture = new Texture(
-				static_cast<const ::ImageType>(TextureRGB));
+				static_cast<const ::ImageType>(TextureRGB), tex1);
 
 		models[1]->mTexture.push_back(tmpTexture);
 
@@ -1149,8 +1155,8 @@ void Init() {
 	glLightfv(GL_LIGHT0, GL_SPECULAR, lit_spc);
 	glLightfv(GL_LIGHT0, GL_POSITION, lit_pos);
 
-	glEnable(GL_LIGHT0);
-	glEnable(GL_LIGHTING);
+//	glEnable(GL_LIGHT0);
+//	glEnable(GL_LIGHTING);
 	glColorMaterial(GL_FRONT_AND_BACK, GL_AMBIENT_AND_DIFFUSE);
 	glEnable(GL_COLOR_MATERIAL);
 
@@ -1173,7 +1179,7 @@ void Init() {
 	models[0]->mLSCM->mMesh->Save("Model3DS/object1.obj");
 	models[0]->mLSCM->mMesh->FindTextureMax();
 //
-	models[1]->LoadTexture("texture2.bmp");
+	models[1]->LoadTexture("wood.bmp");
 	models[1]->mLSCM->run("CG");
 	models[1]->mLSCM->mMesh->Save("Model3DS/object2.obj");
 	models[1]->mLSCM->mMesh->FindTextureMax();
@@ -1182,6 +1188,8 @@ void Init() {
 	displayTexture = true;
 	controllObject = SELECT;
 	textureOFF = false;
+
+	keyboard('g',0,0);
 }
 
 int main(int argc, char *argv[]) {
