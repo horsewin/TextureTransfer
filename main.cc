@@ -32,11 +32,10 @@ const static GLfloat lit_amb[4] = { 0.4f, 0.4f, 0.4f, 1.0 }; /* 環境光の強�
 const static GLfloat lit_dif[4] = { 1.0, 1.0, 1.0, 1.0 }; /* 拡散光の強さ */
 const static GLfloat lit_spc[4] = { 0.4f, 0.4f, 0.4f, 1.0 }; /* 鏡面反射光の強さ */
 const static GLfloat lit_pos[4] = { 0.0, 0.0, -9.0, 1.0 }; /* 光源の位置 */
-char * MODELDIR = "Model3DS/"; ///home/umakatsu/TextureTransfer/TextureTransfer/
-char * MODELFILE1 = "keyboard";
-char * MODELFILE2 = "cow";
-char * FORMAT1 = ".3ds";
-char * FORMAT2 = ".3ds";
+char * LOADFILENAME = "Torus";
+char * LOADFILENAME2 = "cow";
+char * LOADFILEFORMAT1 = ".3ds";
+char * LOADFILEFORMAT2 = ".3ds";
 
 using namespace std;
 using namespace TextureTransfer;
@@ -415,7 +414,7 @@ void keyboard(unsigned char key, int x, int y) {
 			controller.AcquireMatching();
 
 			TexturePaste(true);
-			string newstr("New"); newstr+= MODELFILE2;
+			string newstr("New"); newstr+= LOADFILENAME2;
 			models[1]->Save3DModel(newstr.c_str());
 //
 //			IndexedMesh * lscmMesh = models[1]->mLSCM->mMesh.get();
@@ -1133,7 +1132,6 @@ void TexturePaste(bool color) {
 		REP(i,2) {
 			models[i]->SetMeshSelected(false);
 		}
-		controller.InitHashmap();
 #if FEEDBACK_VISUALIZE == 1
 		cvNamedWindow(winName, 1);
 		cvShowImage( winName, src);
@@ -1145,7 +1143,8 @@ void TexturePaste(bool color) {
 	}
 }
 
-void Init() {
+void Init()
+{
 	glClearColor(1, 1, 1, 1);
 	glEnable(GL_DEPTH_TEST);
 	glEnable(GL_NORMALIZE);
@@ -1163,28 +1162,24 @@ void Init() {
 	glShadeModel(GL_SMOOTH);
 
 	//load 3ds model
-	string model1Name(MODELDIR);
-	model1Name += MODELFILE1;
-	model1Name += FORMAT1;
-	string model2Name(MODELDIR);
-	model2Name += MODELFILE2;
-	model2Name += FORMAT2;
-
-	models[0] = new ViewingModel(model1Name.c_str());
-	models[1] = new ViewingModel(model2Name.c_str());
+	ostringstream model1Name, model2Name;
+	model1Name.clear(); model2Name.clear();
+	model1Name << DATABASEDIR << LOADFILENAME << "/" << LOADFILENAME << LOADFILEFORMAT1;
+	model2Name << DATABASEDIR << LOADFILENAME2 << "/" << LOADFILENAME2 << LOADFILEFORMAT2;
+	models[0] = new ViewingModel(model1Name.str().c_str());
+	models[1] = new ViewingModel(model2Name.str().c_str());
 	manupulation = 1;
 
 	models[0]->LoadTexture("texture1.bmp");
 	models[0]->mLSCM->run("CG");
-	models[0]->mLSCM->mMesh->Save("Model3DS/object1.obj");
+	models[0]->mLSCM->mMesh->Save("");
 	models[0]->mLSCM->mMesh->FindTextureMax();
 //
 	models[1]->LoadTexture("wood.bmp");
 	models[1]->mLSCM->run("CG");
-	models[1]->mLSCM->mMesh->Save("Model3DS/object2.obj");
+	models[1]->mLSCM->mMesh->Save("");
 	models[1]->mLSCM->mMesh->FindTextureMax();
 
-	controller.InitHashmap();
 	displayTexture = true;
 	controllObject = SELECT;
 	textureOFF = false;
@@ -1192,7 +1187,8 @@ void Init() {
 	keyboard('g',0,0);
 }
 
-int main(int argc, char *argv[]) {
+int main(int argc, char *argv[])
+{
 	glutInit(&argc, argv);
 	glutInitDisplayMode(GLUT_RGBA | GLUT_DEPTH | GLUT_DOUBLE);
 	glutInitWindowSize(W_WIDTH, W_HEIGHT);

@@ -46,8 +46,6 @@ namespace TextureTransfer
 	private:
 		cv::Ptr<IplImage> mInput1;
 		cv::Ptr<IplImage> mInput2;
-
-		int mIndexHashmap[W_WIDTH/2][W_HEIGHT/2][2];
 	};
 
 }

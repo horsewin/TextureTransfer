@@ -127,6 +127,11 @@ namespace TextureTransfer
 	  unsigned int i,j ;
 	  std::ofstream out(file_name.c_str()) ;
 
+	  if(!out.is_open())
+	  {
+		 return;
+	  }
+
 	  mTextureFaces.clear();
 
 	  for(i=0; i<mVertices.size(); i++) {

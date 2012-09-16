@@ -42,17 +42,6 @@ namespace TextureTransfer
 
 	}
 
-	void TransferController::InitHashmap( void )
-	{
-		REP(k,2){
-			REP(i,W_WIDTH/2){
-				REP(j,W_HEIGHT/2){
-					mIndexHashmap[i][j][k] = 0;
-				}
-			}
-		}
-	}
-
 	void TransferController::SetContourPoints()
 	{
 		//Load selected images

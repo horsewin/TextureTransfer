@@ -26,9 +26,8 @@
 #include <lib3ds.h>
 #include <iostream>
 #include <fstream>
-#include <stdio.h>
+#include <cstdio>
 #include <cstring>
-#include <string.h>
 
 //---------------------------------------------------------------------------
 // Constant/Define
@@ -48,7 +47,6 @@ using namespace boost::numeric;
 using namespace Eigen;
 
 int ind1, ind2;
-static const char * DATABASEDIR = "/home/umakatsu/Dropbox/Lab/ModelDatabase/";
 
 namespace {
 	inline void SetAdjacentValue(const int & i1, const int & i2, const int & i3,
@@ -185,7 +183,7 @@ namespace TextureTransfer
 		char *dot;
 
 		//check whether .3ds, .obj or others
-		dot = strrchr(mModelname, '.');
+		dot = strrchr(mModelname.c_str(), '.');
 
 		if (!strcmp(dot, ".3ds") || !strcmp(dot, ".3DS"))
 		{
@@ -232,7 +230,7 @@ namespace TextureTransfer
 		::Lib3dsMesh *mesh; //メッシュ単位
 
 		//モデル読み込み
-		m_model = lib3ds_file_open(mModelname);
+		m_model = lib3ds_file_open(mModelname.c_str());
 		if (m_model == NULL) {
 			std::cerr << "can't Open file\n";
 			exit(0);
@@ -363,9 +361,9 @@ namespace TextureTransfer
 		{
 			input.open(modelName);
 		}
-		else if( mModelname )
+		else if( !mModelname.empty() )
 		{
-			input.open(mModelname);
+			input.open(mModelname.c_str());
 		}
 		else
 		{
@@ -702,7 +700,7 @@ namespace TextureTransfer
 
 	bool ViewingModel::LoadMatrixFrom3ds(void) {
 		char load_file_name[100];
-		sprintf(load_file_name, "%s.txt", mModelname);
+		sprintf(load_file_name, "%s.txt", mModelname.c_str());
 
 		// Create frequency matrix
 		// Create adjacent matrix
@@ -763,7 +761,7 @@ namespace TextureTransfer
 	bool ViewingModel::LoadMatrixFromObj(void)
 	{
 		char load_file_name[100];
-		sprintf(load_file_name, "%s.txt", mModelname);
+		sprintf(load_file_name, "%s.txt", mModelname.c_str());
 
 		// Create frequency matrix
 		// Create adjacent matrix
@@ -1335,9 +1333,8 @@ namespace TextureTransfer
 	: mScales(5.0), mSumOfVertices(0), mSumOfStrokes(0),  mIsConvert(false), mIsLoadMatrix(false),
 	  mHasTexture(false), mMeshSelected(false)
 	{
-		mModelname = new char[strlen(name)];
-		strcpy(mModelname, name);
-
+		mModelname.clear();
+		mModelname = name;
 		REP(i,3) {
 			mTrans[i] = 0.0;
 			mAngles[i] = 0.0;
