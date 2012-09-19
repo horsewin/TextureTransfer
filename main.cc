@@ -32,11 +32,18 @@ const static GLfloat lit_amb[4] = { 0.4f, 0.4f, 0.4f, 1.0 }; /* 環境光の強�
 const static GLfloat lit_dif[4] = { 1.0, 1.0, 1.0, 1.0 }; /* 拡散光の強さ */
 const static GLfloat lit_spc[4] = { 0.4f, 0.4f, 0.4f, 1.0 }; /* 鏡面反射光の強さ */
 const static GLfloat lit_pos[4] = { 0.0, 0.0, -9.0, 1.0 }; /* 光源の位置 */
-char * LOADFILENAME = "Torus";
-char * LOADFILENAME2 = "cow";
-char * LOADFILEFORMAT1 = ".3ds";
-char * LOADFILEFORMAT2 = ".3ds";
+std::string LOADFILENAME("Torus");
+std::string LOADFILENAME2("cow");
+std::string LOADFILEFORMAT1(".3ds");
+std::string LOADFILEFORMAT2(".3ds");
 
+namespace TextureTransfer
+{
+	const int ConstParams::W_WIDTH  = 1280;
+	const int ConstParams::W_HEIGHT = 800;
+
+	const char *  ConstParams::DATABASEDIR = "/home/umakatsu/Dropbox/Lab/ModelDatabase/";
+}
 using namespace std;
 using namespace TextureTransfer;
 //---------------------------------------------------------------------------
@@ -292,16 +299,16 @@ void display()
 {
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-	DrawModelMonitor(0, 0, W_WIDTH / 2, W_HEIGHT / 2, models[0], false, 3);
-	DrawModelMonitor(W_WIDTH / 2, 0, W_WIDTH / 2, W_HEIGHT / 2, models[1],
+	DrawModelMonitor(0, 0, ConstParams::W_WIDTH / 2, ConstParams::W_HEIGHT / 2, models[0], false, 3);
+	DrawModelMonitor(ConstParams::W_WIDTH / 2, 0, ConstParams::W_WIDTH / 2, ConstParams::W_HEIGHT / 2, models[1],
 			false, 4);
-//  DrawModelMonitor(0, 0, W_WIDTH, W_HEIGHT, models[1]);
+//  DrawModelMonitor(0, 0, ConstParams::W_WIDTH, ConstParams::W_HEIGHT, models[1]);
 
 	if (controllObject)
 	{
-		DrawTextureMonitor(0, W_HEIGHT / 2, W_WIDTH / 2, W_HEIGHT / 2,
+		DrawTextureMonitor(0, ConstParams::W_HEIGHT / 2, ConstParams::W_WIDTH / 2, ConstParams::W_HEIGHT / 2,
 				models[0], 1);
-		DrawTextureMonitor(W_WIDTH / 2, W_HEIGHT / 2, W_WIDTH / 2, W_HEIGHT / 2,
+		DrawTextureMonitor(ConstParams::W_WIDTH / 2, ConstParams::W_HEIGHT / 2, ConstParams::W_WIDTH / 2, ConstParams::W_HEIGHT / 2,
 				models[1], 2);
 	}
 	glutSwapBuffers();
@@ -394,13 +401,13 @@ void keyboard(unsigned char key, int x, int y) {
 		if (manupulation == 1)
 		{
 			const char * f_str = "mesh1.bmp";
-			WriteBitmapFromGL(f_str, 0, W_HEIGHT / 2, W_WIDTH / 2,
-					W_HEIGHT / 2);
+			WriteBitmapFromGL(f_str, 0, ConstParams::W_HEIGHT / 2, ConstParams::W_WIDTH / 2,
+					ConstParams::W_HEIGHT / 2);
 			cout << "Save decomposed mesh from Obj1 -> " << f_str << endl;
 		} else {
 			const char * f_str = "mesh2.bmp";
-			WriteBitmapFromGL(f_str, W_WIDTH / 2, W_HEIGHT / 2, W_WIDTH / 2,
-					W_HEIGHT / 2);
+			WriteBitmapFromGL(f_str, ConstParams::W_WIDTH / 2, ConstParams::W_HEIGHT / 2, ConstParams::W_WIDTH / 2,
+					ConstParams::W_HEIGHT / 2);
 
 			cout << "Save decomposed mesh from Obj2 -> " << f_str << endl;
 		}
@@ -420,17 +427,17 @@ void keyboard(unsigned char key, int x, int y) {
 //			IndexedMesh * lscmMesh = models[1]->mLSCM->mMesh.get();
 //			REP(verIdx, lscmMesh->mVertices.size())
 //			{
-//				//for warping texture mapping to size (W_WIDTH/2, W_HEIGHT/2)
-//				double ratio_x = (W_WIDTH * 0.5 - 0)
+//				//for warping texture mapping to size (ConstParams::W_WIDTH/2, ConstParams::W_HEIGHT/2)
+//				double ratio_x = (ConstParams::W_WIDTH * 0.5 - 0)
 //						/ (lscmMesh->mTexMax.x - lscmMesh->mTexMin.x);
-//				double ratio_y = (W_HEIGHT * 0.5 - 0)
+//				double ratio_y = (ConstParams::W_HEIGHT * 0.5 - 0)
 //						/ (lscmMesh->mTexMax.y - lscmMesh->mTexMin.y); //
 //
 //				GLfloat texcos[2];
 //				//TEXTURE_ARBを用いているためu-v座標を0-1にしなくてもよい
 //				texcos[0] = (lscmMesh->mVertices[verIdx].tex_coord.x
 //						- lscmMesh->mTexMin.x) * ratio_x;
-//				texcos[1] = (W_HEIGHT / 2
+//				texcos[1] = (ConstParams::W_HEIGHT / 2
 //						- (lscmMesh->mVertices[verIdx].tex_coord.y
 //								- lscmMesh->mTexMin.y) * ratio_y) - 0;
 //				cout << lscmMesh->mVertices[verIdx].textureNumber << " + " << texcos[0] << "," << texcos[1] << endl;
@@ -552,7 +559,7 @@ void mouse(int button, int state, int x, int y)
 
 void motion(int x, int y) {
 	// change control window in accordance with mouse cursor coord
-	if (x < W_WIDTH / 2 && 0 <= x) {
+	if (x < ConstParams::W_WIDTH / 2 && 0 <= x) {
 		manupulation = 1;
 	} else {
 		manupulation = 2;
@@ -573,7 +580,7 @@ void motion(int x, int y) {
 		if (mouse_l == 1 || mouse_m == 1 || mouse_r == 1) {
 			mpos[0] = x;
 			mpos[1] = y;
-			if (x < W_WIDTH / 2 && 0 <= x) {
+			if (x < ConstParams::W_WIDTH / 2 && 0 <= x) {
 				models[0]->mAngles[0] += theta[0];
 				models[0]->mAngles[1] += theta[1];
 			} else {
@@ -690,10 +697,10 @@ void DrawModelMonitor(int x, int y, int w, int h, ViewingModel * model,
 			//テクスチャセット
 			model->mTexture[texNumber]->bind();
 
-			//for warping texture mapping to size (W_WIDTH/2, W_HEIGHT/2)
-			double ratio_x = (W_WIDTH * 0.5 - 0)
+			//for warping texture mapping to size (ConstParams::W_WIDTH/2, ConstParams::W_HEIGHT/2)
+			double ratio_x = (ConstParams::W_WIDTH * 0.5 - 0)
 					/ (lscmMesh->mTexMax.x - lscmMesh->mTexMin.x);
-			double ratio_y = (W_HEIGHT * 0.5 - 0)
+			double ratio_y = (ConstParams::W_HEIGHT * 0.5 - 0)
 					/ (lscmMesh->mTexMax.y - lscmMesh->mTexMin.y); //
 
 //			cout << lscmMesh->mFaces.size() << endl;
@@ -728,7 +735,7 @@ void DrawModelMonitor(int x, int y, int w, int h, ViewingModel * model,
 						//TEXTURE_ARBを用いているためu-v座標を0-1にしなくてもよい
 						texcos[0] = (lscmMesh->mVertices[texIndex].tex_coord.x
 								- lscmMesh->mTexMin.x) * ratio_x;
-						texcos[1] = (W_HEIGHT / 2
+						texcos[1] = (ConstParams::W_HEIGHT / 2
 								- (lscmMesh->mVertices[texIndex].tex_coord.y
 										- lscmMesh->mTexMin.y) * ratio_y) - 0;
 						GLdouble vertex[3];
@@ -815,13 +822,13 @@ void DrawModelMonitor(int x, int y, int w, int h, ViewingModel * model,
 
 	// frame
 //  glBegin(GL_LINES);
-//  glX = W_WIDTH/2;
+//  glX = ConstParams::W_WIDTH/2;
 //  glY = 2*viewport[3];
 //  glZ = 0;
 //  gluUnProject((GLdouble)glX, (GLdouble)glY, (GLdouble)glZ,modelview, projection, viewport, &ox, &oy, &oz);
 //  glVertex3d(ox,oy,oz);
 //
-//  glX = W_WIDTH/2;
+//  glX = ConstParams::W_WIDTH/2;
 //  glY = viewport[3];
 //  glZ = 0;
 //  gluUnProject((GLdouble)glX, (GLdouble)glY, (GLdouble)glZ,modelview, projection, viewport, &ox, &oy, &oz);
@@ -876,10 +883,10 @@ void DrawTextureMonitor(int x, int y, int w, int h, ViewingModel * model,
 				//テクスチャセット
 				model->mTexture[texNumber]->bind();
 
-				//for warping texture mapping to size (W_WIDTH/2, W_HEIGHT/2)
-				double ratio_x = (W_WIDTH * 0.5 - 0)
+				//for warping texture mapping to size (ConstParams::W_WIDTH/2, ConstParams::W_HEIGHT/2)
+				double ratio_x = (ConstParams::W_WIDTH * 0.5 - 0)
 						/ (im->mTexMax.x - im->mTexMin.x);
-				double ratio_y = (W_HEIGHT * 0.5 - 0)
+				double ratio_y = (ConstParams::W_HEIGHT * 0.5 - 0)
 						/ (im->mTexMax.y - im->mTexMin.y);
 
 	//			cout << lscmMesh->mFaces.size() << endl;
@@ -914,7 +921,7 @@ void DrawTextureMonitor(int x, int y, int w, int h, ViewingModel * model,
 							//TEXTURE_ARBを用いているためu-v座標を0-1にしなくてもよい
 							texcos[0] = (im->mVertices[texIndex].tex_coord.x
 									- im->mTexMin.x) * ratio_x;
-							texcos[1] = (W_HEIGHT / 2
+							texcos[1] = (ConstParams::W_HEIGHT / 2
 									- (im->mVertices[texIndex].tex_coord.y
 											- im->mTexMin.y) * ratio_y) - 0;
 							glColor3f(1.0f, 1.0f, 1.0f);
@@ -1037,9 +1044,9 @@ void DrawTextureMonitor(int x, int y, int w, int h, ViewingModel * model,
 
 void PointsDisplay() {
 	IndexedMesh * tmpMesh = models[manupulation - 1]->mLSCM->mMesh.get();
-	double ratio_x = (W_WIDTH * 0.5 - 1)
+	double ratio_x = (ConstParams::W_WIDTH * 0.5 - 1)
 			/ (tmpMesh->mTexMax.x - tmpMesh->mTexMin.x);
-	double ratio_y = (W_HEIGHT * 0.5 - 1)
+	double ratio_y = (ConstParams::W_HEIGHT * 0.5 - 1)
 			/ (tmpMesh->mTexMax.y - tmpMesh->mTexMin.y);
 
 	IplImage * input = cvLoadImage("mesh1.bmp", 0);
@@ -1164,8 +1171,8 @@ void Init()
 	//load 3ds model
 	ostringstream model1Name, model2Name;
 	model1Name.clear(); model2Name.clear();
-	model1Name << DATABASEDIR << LOADFILENAME << "/" << LOADFILENAME << LOADFILEFORMAT1;
-	model2Name << DATABASEDIR << LOADFILENAME2 << "/" << LOADFILENAME2 << LOADFILEFORMAT2;
+	model1Name << ConstParams::DATABASEDIR << LOADFILENAME.c_str() << "/" << LOADFILENAME.c_str() << LOADFILEFORMAT1.c_str();
+	model2Name << ConstParams::DATABASEDIR << LOADFILENAME2.c_str() << "/" << LOADFILENAME2.c_str() << LOADFILEFORMAT2.c_str();
 	models[0] = new ViewingModel(model1Name.str().c_str());
 	models[1] = new ViewingModel(model2Name.str().c_str());
 	manupulation = 1;
@@ -1191,16 +1198,13 @@ int main(int argc, char *argv[])
 {
 	glutInit(&argc, argv);
 	glutInitDisplayMode(GLUT_RGBA | GLUT_DEPTH | GLUT_DOUBLE);
-	glutInitWindowSize(W_WIDTH, W_HEIGHT);
+	glutInitWindowSize(ConstParams::W_WIDTH, ConstParams::W_HEIGHT);
 
 	glutCreateWindow("Mesh Decompositon Using Harmonic Field");
 
 	CallbackEntry();
 
-	Init();
-
 	if(argc == 2)
-//	if(true)
 	{
 		strcpy(filename, argv[1]);
 //		strcpy(filename, "Model3DS/debug_remote.txt");
@@ -1208,19 +1212,29 @@ int main(int argc, char *argv[])
 	}
 	else if( argc == 3)
 	{
-//		FORMAT1 = strrchr(argv[1],'.');
-//		const char *file1 = (strrchr(argv[1],'/')) + 1;
-//
-//		FORMAT2 = strrchr(argv[2],'.');
-//		const char *file2 = strrchr(argv[2],'/');
-//
-//		cout << file1 << " " << endl;
-//		cout << file2 << " " << endl;
+		LOADFILENAME.clear();
+		LOADFILENAME2.clear();
+		LOADFILEFORMAT1.clear();
+		LOADFILEFORMAT2.clear();
+
+		LOADFILENAME		= strtok(argv[1], ".");
+		LOADFILEFORMAT1	+= ".";
+		LOADFILEFORMAT1	+= strtok(NULL, ".");
+
+		LOADFILENAME2		= strtok(argv[2], ".");
+		LOADFILEFORMAT2	+= ".";
+		LOADFILEFORMAT2	+= strtok(NULL, ".");
+
+//		cout << LOADFILENAME.c_str() << "\t" << LOADFILEFORMAT1.c_str() << " " << endl;
+//		cout << LOADFILENAME2.c_str() << "\t" << LOADFILEFORMAT2.c_str()<< " " << endl;
 	}
 	else if( argc == 4)
 	{
 
 	}
+
+	Init();
+
 	// start to display image
 	glutMainLoop();
 

@@ -581,15 +581,15 @@ namespace TextureTransfer
 			sModel->meshes[texNumber]->nvertices = vertices.size();
 
 			//for warping texture mapping
-			double ratio_x = (W_WIDTH * 0.5 - 0)
+			double ratio_x = (ConstParams::W_WIDTH * 0.5 - 0)
 					/ (lscmMesh->mTexMax.x - lscmMesh->mTexMin.x);
-			double ratio_y = (W_HEIGHT * 0.5 - 0)
+			double ratio_y = (ConstParams::W_HEIGHT * 0.5 - 0)
 					/ (lscmMesh->mTexMax.y - lscmMesh->mTexMin.y); //
 
 
 			//頂点情報の保存
-			double img_width  = (W_WIDTH / 2);
-			double img_height = (W_HEIGHT / 2);
+			double img_width  = (ConstParams::W_WIDTH / 2);
+			double img_height = (ConstParams::W_HEIGHT / 2);
 			REP(index, vertices.size())
 			{
 				sModel->meshes[texNumber]->vertices[index][0] = vertices[index].point.x;
@@ -645,13 +645,13 @@ namespace TextureTransfer
 
 		//copy all new materials to ARMM dir
 		ostringstream com;
-		com << "mkdir " << DATABASEDIR << filename << " && ";
+		com << "mkdir " << ConstParams::DATABASEDIR << filename << " && ";
 		com << "cp " << saveName.str().c_str() << " ";
 		REP(m,sModel->nmaterials)
 		{
 			com << textureFilename[m].str().c_str() << " ";
 		}
-		com << DATABASEDIR << filename;
+		com << ConstParams::DATABASEDIR << filename;
 
 		if (system(com.str().c_str())){
 
@@ -1330,11 +1330,9 @@ namespace TextureTransfer
 	 * @name : model name for loading
 	 */
 	ViewingModel::ViewingModel(const char * name)
-	: mScales(5.0), mSumOfVertices(0), mSumOfStrokes(0),  mIsConvert(false), mIsLoadMatrix(false),
-	  mHasTexture(false), mMeshSelected(false)
+	: mScales(5.0), mModelname(name), mSumOfVertices(0), mSumOfStrokes(0),
+	  mIsConvert(false), mIsLoadMatrix(false), mHasTexture(false), mMeshSelected(false)
 	{
-		mModelname.clear();
-		mModelname = name;
 		REP(i,3) {
 			mTrans[i] = 0.0;
 			mAngles[i] = 0.0;
@@ -1344,7 +1342,6 @@ namespace TextureTransfer
 		//  mLSCM.push_back(lscm);
 
 		mLSCM = boost::shared_ptr<LSCM>(new LSCM());
-		//  mLSCM = new LSCM();
 
 		//for mesh decomposition
 		Load3DModel();

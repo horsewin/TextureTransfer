@@ -3,9 +3,17 @@
 
 #define REP(i,n) for(int i=0;i<(int)n;++i)
 
-const int W_WIDTH  = 1280;
-const int W_HEIGHT = 800;
+namespace TextureTransfer
+{
+	class ConstParams
+	{
+	public:
+		static const int W_WIDTH;
+		static const int W_HEIGHT;
 
-static const char * DATABASEDIR = "/home/umakatsu/Dropbox/Lab/ModelDatabase/";
+		static const char * DATABASEDIR;
+	};
+}
+
 
 #endif
