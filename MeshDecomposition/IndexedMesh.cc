@@ -57,7 +57,10 @@ namespace TextureTransfer
 
 	IndexedMesh::~IndexedMesh()
 	{
-
+		mVertices.clear();
+		mFaces.clear();
+		mTextureFaces.clear();
+		mTexnumVernum.clear();
 	}
 
 	void IndexedMesh::FindTextureMax()
@@ -178,7 +181,6 @@ namespace TextureTransfer
 			bool duplicate = false;
 			REP(id_pair, id_seek)
 			{
-//				if( id)
 				if(mVertices[id_pair].point == mVertices[id_seek].point)
 				{
 					//found out duplicating of vertices
@@ -204,7 +206,8 @@ namespace TextureTransfer
 			}
 		}
 
-		std::cout << mVertices.size() << "==" << newVertices.size() << std::endl;
+		std::cout << "Shrink: " << mVertices.size() << " => " << newVertices.size() << std::endl;
+
 		//revise face info
 		REP(id_face, mFaces.size())
 		{
@@ -216,7 +219,6 @@ namespace TextureTransfer
 			}
 		}
 
-		std::cout << dup << std::endl;
 		//resize array of vertex
 		mVertices.swap(newVertices);
 

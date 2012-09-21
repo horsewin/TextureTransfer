@@ -7,6 +7,8 @@
 #include <vector>
 
 #include "BasicFace.h"
+#include "ModelCorrespondence.h"
+
 #include <string>
 
 //-------------------------------------------------------------------
@@ -37,7 +39,7 @@ namespace TextureTransfer
 	  std::vector<Vertex> mVertices;				//vertex information for creating mesh structure
 	  std::vector<Facet>  mFaces;					//面情報の頂点座標の格納順序
 	  std::vector<Facet>  mTextureFaces;			//面情報のテクスチャ座標の格納順序
-	  std::vector<std::pair<int,int> > mTexnumVernum; //LSCM頂点群と通常頂点群の対応関係
+	  std::vector<ModelCorresPondense> mTexnumVernum; //LSCM頂点群と通常頂点群の対応関係
 
 	  bool mInFacet ;	//faceを追加するときにmutual exclusion的な使い方をする
 

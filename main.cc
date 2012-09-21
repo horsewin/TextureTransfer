@@ -32,7 +32,7 @@ const static GLfloat lit_amb[4] = { 0.4f, 0.4f, 0.4f, 1.0 }; /* 環境光の強�
 const static GLfloat lit_dif[4] = { 1.0, 1.0, 1.0, 1.0 }; /* 拡散光の強さ */
 const static GLfloat lit_spc[4] = { 0.4f, 0.4f, 0.4f, 1.0 }; /* 鏡面反射光の強さ */
 const static GLfloat lit_pos[4] = { 0.0, 0.0, -9.0, 1.0 }; /* 光源の位置 */
-std::string LOADFILENAME("Torus");
+std::string LOADFILENAME("keyboard");
 std::string LOADFILENAME2("cow");
 std::string LOADFILEFORMAT1(".3ds");
 std::string LOADFILEFORMAT2(".3ds");
@@ -80,7 +80,7 @@ std::vector<int *> point;
 
 TextureTransfer::ViewingModel * models[2];
 TextureTransfer::TransferController controller;
-short manupulation;
+short manipulation;
 
 void DrawModelMonitor(int x, int y, int w, int h,
 		TextureTransfer::ViewingModel * model, bool isStroke,
@@ -177,22 +177,23 @@ void ColorSetting(const double & value, bool harmonic = false) {
 	glColor3f(R, G, B);
 }
 
-void SetDirectVertex(cv::Point3d& start_point,
-		std::vector<Vector3> direct_ver[2], cv::Point3d& end_point) {
-	start_point.x = direct_ver[manupulation - 1][0].x;
-	start_point.y = direct_ver[manupulation - 1][0].y;
-	start_point.z = direct_ver[manupulation - 1][0].z;
+void SetDirectVertex(cv::Point3d& start_point, std::vector<Vector3> direct_ver[2], cv::Point3d& end_point)
+{
+	start_point.x = direct_ver[manipulation - 1][0].x;
+	start_point.y = direct_ver[manipulation - 1][0].y;
+	start_point.z = direct_ver[manipulation - 1][0].z;
 	end_point.x =
-			direct_ver[manupulation - 1][direct_ver[manupulation - 1].size() - 1].x;
+			direct_ver[manipulation - 1][direct_ver[manipulation - 1].size() - 1].x;
 	end_point.y =
-			direct_ver[manupulation - 1][direct_ver[manupulation - 1].size() - 1].y;
+			direct_ver[manipulation - 1][direct_ver[manipulation - 1].size() - 1].y;
 	end_point.z =
-			direct_ver[manupulation - 1][direct_ver[manupulation - 1].size() - 1].z;
+			direct_ver[manipulation - 1][direct_ver[manipulation - 1].size() - 1].z;
 }
 
 void DirectFileInput()
 {
-	if (fileInput == 1) {
+	if (fileInput == 1)
+	{
 		fileInput = 2;
 		//for texture transfer in AR
 		cout << "Load -> " << filename << endl;
@@ -221,32 +222,32 @@ void DirectFileInput()
 			}
 		}
 
-		models[manupulation - 1]->IncrementSumOfStrokes();
+		models[manipulation - 1]->IncrementSumOfStrokes();
 		//reserver click points
 		cv::Point3d start_point, end_point;
-		start_point.x = direct_ver[manupulation - 1][0].x;
-		start_point.y = direct_ver[manupulation - 1][0].y;
-		start_point.z = direct_ver[manupulation - 1][0].z;
+		start_point.x = direct_ver[manipulation - 1][0].x;
+		start_point.y = direct_ver[manipulation - 1][0].y;
+		start_point.z = direct_ver[manipulation - 1][0].z;
 		end_point.x =
-				direct_ver[manupulation - 1][direct_ver[manupulation - 1].size()
+				direct_ver[manipulation - 1][direct_ver[manipulation - 1].size()
 						- 1].x;
 		end_point.y =
-				direct_ver[manupulation - 1][direct_ver[manupulation - 1].size()
+				direct_ver[manipulation - 1][direct_ver[manipulation - 1].size()
 						- 1].y;
 		end_point.z =
-				direct_ver[manupulation - 1][direct_ver[manupulation - 1].size()
+				direct_ver[manipulation - 1][direct_ver[manipulation - 1].size()
 						- 1].z;
 		printf("%f %f %f : %f %f %f \n", start_point.x, start_point.y,
 				start_point.z, end_point.x, end_point.y, end_point.z);
 		int window = 3;
-		if (models[manupulation - 1]->CheckFittingVertices(viewport[window],
+		if (models[manipulation - 1]->CheckFittingVertices(viewport[window],
 				modelview[window], projection[window], start_point, end_point,
 				false)) {
-			models[manupulation - 1]->UpdateMatrix();
-			models[manupulation - 1]->RenewMeshDataConstruct(2);
-			models[manupulation - 1]->mLSCM->mMesh->FindTextureMax();
+			models[manipulation - 1]->UpdateMatrix();
+			models[manipulation - 1]->RenewMeshDataConstruct(2);
+			models[manipulation - 1]->mLSCM->mMesh->FindTextureMax();
 		}
-		models[manupulation - 1]->CorrespondTexCoord(viewport[window],
+		models[manipulation - 1]->CorrespondTexCoord(viewport[window],
 				modelview[window], projection[window], start_point, end_point,
 				texPoint[0], texPoint[1], clickPoint[0], clickPoint[1], false);
 
@@ -261,25 +262,25 @@ void DirectFileInput()
 	{
 		fileInput = 4;
 		//--->selecting parts of the dest's model
-		manupulation = 2;
+		manipulation = 2;
 
 		cv::Point3d start_point, end_point;
-		start_point.x = direct_ver[manupulation - 1][0].x;
-		start_point.y = direct_ver[manupulation - 1][0].y;
-		start_point.z = direct_ver[manupulation - 1][0].z;
+		start_point.x = direct_ver[manipulation - 1][0].x;
+		start_point.y = direct_ver[manipulation - 1][0].y;
+		start_point.z = direct_ver[manipulation - 1][0].z;
 		end_point.x =
-				direct_ver[manupulation - 1][direct_ver[manupulation - 1].size()
+				direct_ver[manipulation - 1][direct_ver[manipulation - 1].size()
 						- 1].x;
 		end_point.y =
-				direct_ver[manupulation - 1][direct_ver[manupulation - 1].size()
+				direct_ver[manipulation - 1][direct_ver[manipulation - 1].size()
 						- 1].y;
 		end_point.z =
-				direct_ver[manupulation - 1][direct_ver[manupulation - 1].size()
+				direct_ver[manipulation - 1][direct_ver[manipulation - 1].size()
 						- 1].z;
 		printf("%f %f %f : %f %f %f \n", start_point.x, start_point.y,
 				start_point.z, end_point.x, end_point.y, end_point.z);
 		int window = 4;
-		models[manupulation - 1]->CorrespondTexCoord(viewport[window],
+		models[manipulation - 1]->CorrespondTexCoord(viewport[window],
 				modelview[window], projection[window], start_point, end_point,
 				texPoint[0], texPoint[1], clickPoint[0], clickPoint[1], false);
 	}
@@ -299,23 +300,18 @@ void display()
 {
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-	DrawModelMonitor(0, 0, ConstParams::W_WIDTH / 2, ConstParams::W_HEIGHT / 2, models[0], false, 3);
-	DrawModelMonitor(ConstParams::W_WIDTH / 2, 0, ConstParams::W_WIDTH / 2, ConstParams::W_HEIGHT / 2, models[1],
-			false, 4);
-//  DrawModelMonitor(0, 0, ConstParams::W_WIDTH, ConstParams::W_HEIGHT, models[1]);
-
 	if (controllObject)
 	{
-		DrawTextureMonitor(0, ConstParams::W_HEIGHT / 2, ConstParams::W_WIDTH / 2, ConstParams::W_HEIGHT / 2,
-				models[0], 1);
-		DrawTextureMonitor(ConstParams::W_WIDTH / 2, ConstParams::W_HEIGHT / 2, ConstParams::W_WIDTH / 2, ConstParams::W_HEIGHT / 2,
-				models[1], 2);
+		DrawTextureMonitor(0, ConstParams::W_HEIGHT / 2, ConstParams::W_WIDTH / 2, ConstParams::W_HEIGHT / 2, models[0], 1);
+		DrawTextureMonitor(ConstParams::W_WIDTH / 2, ConstParams::W_HEIGHT / 2, ConstParams::W_WIDTH / 2, ConstParams::W_HEIGHT / 2, models[1], 2);
 	}
+	DrawModelMonitor(0, 0, ConstParams::W_WIDTH / 2, ConstParams::W_HEIGHT / 2, models[0], false, 3);
+	DrawModelMonitor(ConstParams::W_WIDTH / 2, 0, ConstParams::W_WIDTH / 2, ConstParams::W_HEIGHT / 2, models[1], false, 4);
+
 	glutSwapBuffers();
 
 	//to control from an external file
 	DirectFileInput();
-//	keyboard('q',0,0);
 }
 
 void idle() {
@@ -326,11 +322,11 @@ void specialkey(int key, int x, int y)
 {
 	switch (key) {
 	case GLUT_KEY_UP:
-		models[manupulation - 1]->mScales *= 2.f;
+		models[manipulation - 1]->mScales *= 2.f;
 		break;
 
 	case GLUT_KEY_DOWN:
-		models[manupulation - 1]->mScales *= 0.5f;
+		models[manipulation - 1]->mScales *= 0.5f;
 		break;
 	}
 }
@@ -343,35 +339,37 @@ void keyboard(unsigned char key, int x, int y) {
 		break;
 
 	case 'w':
-		models[manupulation - 1]->mTrans[1] += 0.5f;
+		models[manipulation - 1]->mTrans[1] += 0.5f;
 		break;
 
 	case 'x':
-		models[manupulation - 1]->mTrans[1] -= 0.5f;
+		models[manipulation - 1]->mTrans[1] -= 0.5f;
 		break;
 
 	case 'd':
-		models[manupulation - 1]->mTrans[0] += 0.5f;
+		models[manipulation - 1]->mTrans[0] += 0.5f;
 		break;
 
 	case 'a':
-		models[manupulation - 1]->mTrans[0] -= 0.5f;
+		models[manipulation - 1]->mTrans[0] -= 0.5f;
 		break;
 
 	//for direct input of clicked points from file
 	case 'g':
 	{
-		const char * topTexture = "key2.bmp";
+
+		break;
+		const char * topTexture = "wood.bmp";
 		::ImageType TextureRGB = (CVD::img_load(topTexture));
 		Texture * tmpTexture = new Texture(static_cast<const ::ImageType>(TextureRGB), topTexture);
 
-		for(int num=0; num<1; num++)
+		for(int num=0; num<2; num++)
 		{
 			REP(id, models[num]->mLSCM->mMesh->mVertices.size())
 			{
 				//テクスチャ画像番号を更新
-				models[num]->mLSCM->mMesh->mVertices[id].textureNumber =
-						models[num]->mTexture.size();
+//				models[num]->mLSCM->mMesh->mVertices[id].textureNumber =
+//						models[num]->mTexture.size();
 			}
 			models[num]->mTexture.push_back(tmpTexture);
 		}
@@ -398,21 +396,19 @@ void keyboard(unsigned char key, int x, int y) {
 		textureOFF=!textureOFF;
 		break;
 	case 's':
-		if (manupulation == 1)
+		if (manipulation == 1)
 		{
 			const char * f_str = "mesh1.bmp";
-			WriteBitmapFromGL(f_str, 0, ConstParams::W_HEIGHT / 2, ConstParams::W_WIDTH / 2,
-					ConstParams::W_HEIGHT / 2);
+			WriteBitmapFromGL(f_str, 0, ConstParams::W_HEIGHT / 2, ConstParams::W_WIDTH / 2, ConstParams::W_HEIGHT / 2);
 			cout << "Save decomposed mesh from Obj1 -> " << f_str << endl;
-		} else {
+		}
+		else
+		{
 			const char * f_str = "mesh2.bmp";
-			WriteBitmapFromGL(f_str, ConstParams::W_WIDTH / 2, ConstParams::W_HEIGHT / 2, ConstParams::W_WIDTH / 2,
-					ConstParams::W_HEIGHT / 2);
-
+			WriteBitmapFromGL(f_str, ConstParams::W_WIDTH / 2, ConstParams::W_HEIGHT / 2, ConstParams::W_WIDTH / 2, ConstParams::W_HEIGHT / 2);
 			cout << "Save decomposed mesh from Obj2 -> " << f_str << endl;
 		}
-		models[manupulation - 1]->SetMeshSelected(true);
-
+		models[manipulation - 1]->SetMeshSelected(true);
 		PointsDisplay();
 
 		if (models[0]->IsMeshSelected() && models[1]->IsMeshSelected())
@@ -466,7 +462,7 @@ void mouse(int button, int state, int x, int y)
 		{
 //			TickCountAverageBegin();
 
-			models[manupulation - 1]->IncrementSumOfStrokes();
+			models[manipulation - 1]->IncrementSumOfStrokes();
 
 			//reserver click points
 			cv::Point3d start_point, end_point;
@@ -476,17 +472,17 @@ void mouse(int button, int state, int x, int y)
 			end_point.y = point[point.size() - 1][1];
 
 			int window;
-			if (manupulation - 1 == 0)
+			if (manipulation - 1 == 0)
 				window = 3;
 			else
 				window = 4;
 
-			if (models[manupulation - 1]->CheckFittingVertices(viewport[window],
+			if (models[manipulation - 1]->CheckFittingVertices(viewport[window],
 					modelview[window], projection[window], start_point,
 					end_point)) {
-				models[manupulation - 1]->UpdateMatrix();
-				models[manupulation - 1]->RenewMeshDataConstruct(2);
-				models[manupulation - 1]->mLSCM->mMesh->FindTextureMax();
+				models[manipulation - 1]->UpdateMatrix();
+				models[manipulation - 1]->RenewMeshDataConstruct(2);
+				models[manipulation - 1]->mLSCM->mMesh->FindTextureMax();
 			}
 			point.clear();
 //			TickCountAverageEnd();
@@ -536,12 +532,12 @@ void mouse(int button, int state, int x, int y)
 			end_point.y = point[point.size() - 1][1];
 
 			int window;
-			if (manupulation - 1 == 0)
+			if (manipulation - 1 == 0)
 				window = 3;
 			else
 				window = 4;
 
-			models[manupulation - 1]->CorrespondTexCoord(viewport[window],
+			models[manipulation - 1]->CorrespondTexCoord(viewport[window],
 					modelview[window], projection[window], start_point,
 					end_point, texPoint[0], texPoint[1], clickPoint[0],
 					clickPoint[1]);
@@ -560,9 +556,9 @@ void mouse(int button, int state, int x, int y)
 void motion(int x, int y) {
 	// change control window in accordance with mouse cursor coord
 	if (x < ConstParams::W_WIDTH / 2 && 0 <= x) {
-		manupulation = 1;
+		manipulation = 1;
 	} else {
-		manupulation = 2;
+		manipulation = 2;
 	}
 
 	if (controllObject == DECOMPOSITE || controllObject == TRANSFER) {
@@ -602,7 +598,8 @@ void CallbackEntry(void) {
 }
 
 void DrawModelMonitor(int x, int y, int w, int h, ViewingModel * model,
-		bool isStroke, const int & separationW) {
+		bool isStroke, const int & separationW)
+{
 	//Viewport transform
 	glViewport(x, y, w, h);
 
@@ -711,10 +708,15 @@ void DrawModelMonitor(int x, int y, int w, int h, ViewingModel * model,
 				//対象の面を構成する頂点が同一のテクスチャ画像を参照しているかチェック
 				bool compose = false;
 
+
+				int faceIdx;
 				REP(loopVer, lscmMesh->mFaces[loopFace].size())
 				{
-					int verIndex = lscmMesh->mFaces[loopFace].at(loopVer);
-					if (lscmMesh->mVertices[verIndex].textureNumber == texNumber) {
+					faceIdx = lscmMesh->mTexnumVernum[loopFace].mFaceIdx[loopVer];
+					if( lscmMesh->mTexnumVernum[loopFace].mTextureNumber == texNumber )
+//					int verIndex = lscmMesh->mFaces[loopFace].at(loopVer);
+//					if (lscmMesh->mVertices[verIndex].textureNumber == texNumber)
+					{
 						compose = true;
 						break;
 					}
@@ -727,6 +729,12 @@ void DrawModelMonitor(int x, int y, int w, int h, ViewingModel * model,
 				{
 					int verIndex = lscmMesh->mFaces[loopFace].at(loopVer);
 					int texIndex = verIndex;
+
+					//対応関係のための指数
+					int corVerIdx= model->mMesh[texNumber]->mFaces[faceIdx].at(loopVer);
+					GLfloat corTexcos[] =
+					{model->mMesh[texNumber]->mVertices[corVerIdx].tex_coord.x, model->mMesh[texNumber]->mVertices[corVerIdx].tex_coord.y};
+
 					glMaterialfv(GL_FRONT_AND_BACK, GL_AMBIENT, lit_amb);
 					glMaterialfv(GL_FRONT_AND_BACK, GL_DIFFUSE, lit_dif);
 					glMaterialfv(GL_FRONT_AND_BACK, GL_SPECULAR, lit_spc);
@@ -742,9 +750,10 @@ void DrawModelMonitor(int x, int y, int w, int h, ViewingModel * model,
 						vertex[0] = lscmMesh->mVertices[verIndex].point.x;
 						vertex[1] = lscmMesh->mVertices[verIndex].point.y;
 						vertex[2] = lscmMesh->mVertices[verIndex].point.z;
+
 						glColor3f(1.0f, 1.0f, 1.0f);
-						glTexCoord2fv(texcos);
-//						printf("verIdx=%d(%f,%f)\n",verIndex, texcos[0], texcos[1]);
+						glTexCoord2fv(corTexcos);
+//						glTexCoord2fv(texcos);
 						glVertex3dv(vertex);
 					}
 				}
@@ -864,21 +873,13 @@ void DrawTextureMonitor(int x, int y, int w, int h, ViewingModel * model,
 //	glVertex2f(texPoint[1].x, texPoint[1].y);
 //	glEnd();
 
-	//for rendering texture deployments
-	glLineWidth(1);
-#if TEXTURE_TRIANGLES==0
-	glBegin(GL_LINES);
-#else
-	glBegin(GL_TRIANGLES);
-#endif
-
 	IndexedMesh * im = model->mLSCM->mMesh.get();
 
 	if (controllObject != SELECT)
 	{
 		if(!textureOFF)
 		{
-			REP(texNumber, model->mTexture.size())
+			for(int texNumber=0; texNumber<model->mTexture.size(); texNumber++)
 			{
 				//テクスチャセット
 				model->mTexture[texNumber]->bind();
@@ -889,18 +890,19 @@ void DrawTextureMonitor(int x, int y, int w, int h, ViewingModel * model,
 				double ratio_y = (ConstParams::W_HEIGHT * 0.5 - 0)
 						/ (im->mTexMax.y - im->mTexMin.y);
 
-	//			cout << lscmMesh->mFaces.size() << endl;
-
 				glBegin(GL_TRIANGLES);
 				REP(loopFace, im->mFaces.size())
 				{
 					//対象の面を構成する頂点が同一のテクスチャ画像を参照しているかチェック
 					bool compose = false;
-
+					int faceIdx = 0;
 					REP(loopVer, im->mFaces[loopFace].size())
 					{
-						int verIndex = im->mFaces[loopFace].at(loopVer);
-						if (im->mVertices[verIndex].textureNumber == texNumber) {
+						faceIdx = im->mTexnumVernum[loopFace].mFaceIdx[loopVer];
+						if( im->mTexnumVernum[loopFace].mTextureNumber == texNumber)
+//						int verIndex = im->mFaces[loopFace].at(loopVer);
+//						if (im->mVertices[verIndex].textureNumber == texNumber)
+						{
 							compose = true;
 							break;
 						}
@@ -911,31 +913,36 @@ void DrawTextureMonitor(int x, int y, int w, int h, ViewingModel * model,
 
 					REP(loopVer, im->mFaces[loopFace].size())
 					{
+						//対応関係のための指数
+						int corVerIdx= model->mMesh[texNumber]->mFaces[faceIdx].at(loopVer);
+						GLfloat corTexcos[] =
+						{model->mMesh[texNumber]->mVertices[corVerIdx].tex_coord.x, model->mMesh[texNumber]->mVertices[corVerIdx].tex_coord.y};
+
 						int verIndex = im->mFaces[loopFace].at(loopVer);
-						int texIndex = verIndex;
-						glMaterialfv(GL_FRONT_AND_BACK, GL_AMBIENT, lit_amb);
-						glMaterialfv(GL_FRONT_AND_BACK, GL_DIFFUSE, lit_dif);
-						glMaterialfv(GL_FRONT_AND_BACK, GL_SPECULAR, lit_spc);
 						{
 							GLfloat texcos[2];
 							//TEXTURE_ARBを用いているためu-v座標を0-1にしなくてもよい
-							texcos[0] = (im->mVertices[texIndex].tex_coord.x
+							texcos[0] = (im->mVertices[verIndex].tex_coord.x
 									- im->mTexMin.x) * ratio_x;
 							texcos[1] = (ConstParams::W_HEIGHT / 2
-									- (im->mVertices[texIndex].tex_coord.y
+									- (im->mVertices[verIndex].tex_coord.y
 											- im->mTexMin.y) * ratio_y) - 0;
-							glColor3f(1.0f, 1.0f, 1.0f);
-							int tmpTexID = model->mLSCM->mMesh->mTexnumVernum[verIndex].first;
-							int tmpVerID = model->mLSCM->mMesh->mTexnumVernum[verIndex].second;
-//							texcos[0] = model->mMesh[tmpTexID]->mVertices[tmpVerID].tex_coord.x;
-//							texcos[1] = model->mMesh[tmpTexID]->mVertices[tmpVerID].tex_coord.y;
-							glTexCoord2fv(texcos);
+//							glTexCoord2fv(texcos);
+							if(texNumber==0)
+							{
+								glColor4f(0.0f, 1.0f, 0.0f, 1.0f);
+								glTexCoord2fv(corTexcos);
 
+							}else{
+								glColor4f(1.0f, 1.0f, 1.0f, 0.0f);
+								glTexCoord2fv(corTexcos);
+							}
 							GLfloat vertex[2];
 							vertex[0] = im->mVertices[verIndex].tex_coord.x;
 							vertex[1] = im->mVertices[verIndex].tex_coord.y;
-//							printf("(TEXTURE)verIdx=%d(%f,%f)\n",verIndex, texcos[0], texcos[1]);
 							glVertex2fv(vertex);
+
+//							printf("TextureNumber=%d VertexID=%d\n", texNumber, verIndex);
 						}
 					}
 				}
@@ -945,6 +952,13 @@ void DrawTextureMonitor(int x, int y, int w, int h, ViewingModel * model,
 		}
 		else
 		{
+			//for rendering texture deployments
+			#if TEXTURE_TRIANGLES==0
+				glBegin(GL_LINES);
+			#else
+				glBegin(GL_TRIANGLES);
+			#endif
+
 			REP(faceIdx, im->mFaces.size() )
 			{
 	#if TEXTURE_TRIANGLES==0
@@ -975,12 +989,20 @@ void DrawTextureMonitor(int x, int y, int w, int h, ViewingModel * model,
 				}
 	#endif
 			}
+			glEnd();
 		}
 	}
 	//in case of selecting parts
 	else
 	{
 		assert(model->mLSCM->mMesh->mVertices.size() == model->mLSCM->mMesh->mTextureCoords.size() );
+		//for rendering texture deployments
+		#if TEXTURE_TRIANGLES==0
+			glBegin(GL_LINES);
+		#else
+			glBegin(GL_TRIANGLES);
+		#endif
+
 		REP(faceIdx, model->mSelectedMesh.second.mFaces.size())
 		{
 //	  for(unsigned int i=0; i<model->mSelectedMesh.second.mTextureCoords.size(); i+=3)
@@ -1023,8 +1045,8 @@ void DrawTextureMonitor(int x, int y, int w, int h, ViewingModel * model,
 
 #endif
 		}
+		glEnd();
 	}
-	glEnd();
 
 	//drawing frame lines
 	//  glColor3d(0,0,0);
@@ -1043,7 +1065,7 @@ void DrawTextureMonitor(int x, int y, int w, int h, ViewingModel * model,
 }
 
 void PointsDisplay() {
-	IndexedMesh * tmpMesh = models[manupulation - 1]->mLSCM->mMesh.get();
+	IndexedMesh * tmpMesh = models[manipulation - 1]->mLSCM->mMesh.get();
 	double ratio_x = (ConstParams::W_WIDTH * 0.5 - 1)
 			/ (tmpMesh->mTexMax.x - tmpMesh->mTexMin.x);
 	double ratio_y = (ConstParams::W_HEIGHT * 0.5 - 1)
@@ -1056,15 +1078,15 @@ void PointsDisplay() {
 	cvZero(src);
 #endif
 
-	controller.mMeshes[manupulation - 1].clear();
+	controller.mMeshes[manipulation - 1].clear();
 	assert(input);
-	REP(i,models[manupulation-1]->mSelectedMesh.second.mVertices.size()) {
+	REP(i,models[manipulation-1]->mSelectedMesh.second.mVertices.size()) {
 		//実際に使われているvertexかどうか
-		if (!models[manupulation - 1]->mSelectedMesh.second.mVertices[i].locked)
+		if (!models[manipulation - 1]->mSelectedMesh.second.mVertices[i].locked)
 			continue;
 
 		Vector2 tmp1 =
-				models[manupulation - 1]->mSelectedMesh.second.mVertices[i].tex_coord;
+				models[manipulation - 1]->mSelectedMesh.second.mVertices[i].tex_coord;
 
 		cv::Point tmp;
 		pair<int, cv::Point> tmpPair;
@@ -1072,10 +1094,10 @@ void PointsDisplay() {
 		tmp.x = (tmp1.x - tmpMesh->mTexMin.x) * ratio_x;
 		tmp.y = (input->height - (tmp1.y - tmpMesh->mTexMin.y) * ratio_y) - 1;
 		tmpPair.first =
-				models[manupulation - 1]->mSelectedMesh.second.mVertices[i].id;
+				models[manipulation - 1]->mSelectedMesh.second.mVertices[i].id;
 		tmpPair.second = tmp;
 
-		controller.mMeshes[manupulation - 1].push_back(tmpPair);
+		controller.mMeshes[manipulation - 1].push_back(tmpPair);
 #if VISUALIZE == 1
 		cvCircle( src, tmp, 2, CV_RGB( 255, 255, 0 ), CV_FILLED );
 #endif
@@ -1175,7 +1197,7 @@ void Init()
 	model2Name << ConstParams::DATABASEDIR << LOADFILENAME2.c_str() << "/" << LOADFILENAME2.c_str() << LOADFILEFORMAT2.c_str();
 	models[0] = new ViewingModel(model1Name.str().c_str());
 	models[1] = new ViewingModel(model2Name.str().c_str());
-	manupulation = 1;
+	manipulation = 1;
 
 	models[0]->LoadTexture("texture1.bmp");
 	models[0]->mLSCM->run("CG");

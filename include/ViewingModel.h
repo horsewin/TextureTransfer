@@ -96,23 +96,21 @@ namespace TextureTransfer
 
 	 private:
 	  void Load3DModel();
-	  void VertexCorrection();
 	  void ConvertDataStructure();
 	  bool LoadMatrixFrom3ds();
 	  bool LoadMatrixFromObj();
 
 	  void Load3DSModel();
 	  void LoadObjModel(const char * modelName = NULL);
-	  std::deque<Texture *> LoadTextures(::Lib3dsFile * pModel, std::string dirpath);
+	  std::deque<Texture *> LoadTextures(::Lib3dsFile * pModel);
 
 	  void SetSelectedMeshData(const int& loopVer);
 	  void SetSelectedFaces(const int& loopTex);
 
 	 public:
-	//  std::vector<boost::shared_ptr<LSCM>> mLSCM;
 	  boost::shared_ptr<LSCM> mLSCM;
 
-	  std::vector<Texture*> mTexture;			// A set of Textures 2011.6.7
+	  std::deque<Texture *> mTexture;			// A set of Textures 2011.6.7
 
 	  std::pair<int,IndexedMesh> mSelectedMesh; //first : an index for the matrix having harmonic field(mTexparts), second: a set of meshes
 
@@ -130,11 +128,8 @@ namespace TextureTransfer
 	  std::vector<int> mMinStartIndex;
 	  std::vector<int> mMinEndIndex;
 
-
 	  Eigen::SparseMatrix<double> sparse_laplacian;
 	  Eigen::VectorXd b, mHarmonicValue;
-
-//	  std::vector< boost::shared_ptr<IndexedMesh> > mMesh;
 
 	  bool mIsConvert;
 	  bool mIsLoadMatrix;

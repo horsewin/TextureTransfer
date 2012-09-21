@@ -45,7 +45,7 @@ namespace TextureTransfer
 
 		unsigned  tex_id;
 
-		char mName[50];
+		char mName[200];
 	};
 
 }

@@ -180,12 +180,10 @@ namespace TextureTransfer
 
 	void ViewingModel::Load3DModel()
 	{
-		char *dot;
-
 		//check whether .3ds, .obj or others
-		dot = strrchr(mModelname.c_str(), '.');
+		const char *extension = strrchr(mModelname.c_str(), '.');
 
-		if (!strcmp(dot, ".3ds") || !strcmp(dot, ".3DS"))
+		if (!strcmp(extension, ".3ds") || !strcmp(extension, ".3DS"))
 		{
 			Load3DSModel();
 
@@ -197,18 +195,18 @@ namespace TextureTransfer
 			if(mMesh.size() > 1)
 			{
 				mLSCM->mMesh->VertexSynthesis();
-				const char * saveFile = "Model3DS/object3.obj";
-				mLSCM->mMesh->Save(saveFile);
-				LoadObjModel(saveFile);
+//				const char * saveFile = "Model3DS/object3.obj";
+//				mLSCM->mMesh->Save(saveFile);
+//				LoadObjModel(saveFile);
 			}
 		}
-		else if (!strcmp(dot, ".obj") || !strcmp(dot, ".OBJ"))
+		else if (!strcmp(extension, ".obj") || !strcmp(extension, ".OBJ"))
 		{
 			LoadObjModel();
 		}
 		else
 		{
-			cerr << "Not supported 3DS file format : " << dot << endl;
+			cerr << "Not supported modelling file format : " << extension << endl;
 			return;
 		}
 
@@ -236,7 +234,11 @@ namespace TextureTransfer
 			exit(0);
 		}
 
-		cout << "MeshVersion = " << m_model->mesh_version << endl;
+		mTexture = LoadTextures(m_model);
+		if(mTexture.size())
+		{
+			mHasTexture = true;
+		}
 
 		//メッシュ分メモリ確保
 		REP(i,m_model->nmeshes)
@@ -292,8 +294,14 @@ namespace TextureTransfer
 
 //				tmp = mesh->vertices[loopVer];
 //				printf("%f,%f,%f\n",mesh->vertices[loopVer][0], mesh->vertices[loopVer][1], mesh->vertices[loopVer][2]);
-//				if(mesh->texcos) printf("%f,%f\n",mesh->texcos[loopVer][0], mesh->texcos[loopVer][1]);
-				mMesh[loop]->AddVertex(tmp, Vector2(0,0));
+				if(mesh->texcos && mesh->texcos[loopVer])
+				{
+					mMesh[loop]->AddVertex(tmp, Vector2(mesh->texcos[loopVer][0],mesh->texcos[loopVer][1]));
+				}
+				else
+				{
+					mMesh[loop]->AddVertex(tmp, Vector2(0,0));
+				}
 			}
 
 			//面データに対応する頂点情報を格納
@@ -422,7 +430,7 @@ namespace TextureTransfer
 						int index;
 						v_input >> index;
 
-						//set face connectivity with a vertex
+						//set face connectivity with a vertex(Face connectivity numbered from 1)
 						tmpMesh->AddVertex2Facet(index - 1);
 						mMesh[0]->AddVertex2Facet(index - 1);
 
@@ -659,21 +667,28 @@ namespace TextureTransfer
 		cout << "Save 3DS..." << saveName.str().c_str() << endl;
 	}
 
-	deque<Texture *> ViewingModel::LoadTextures(::Lib3dsFile * pModel,
-			string dirpath) {
-		assert( pModel);
+	deque<Texture *> ViewingModel::LoadTextures(::Lib3dsFile * pModel)
+	{
+		assert( pModel );
+
 		// Creation of the texture's list
 		deque<Texture *> texList;
-		texList.clear();
+
+		//create dirpath of the loaded model
+		string dirPath(mModelname), tmpPath;
+		tmpPath = strrchr(dirPath.c_str(),'/');
+		dirPath.resize(dirPath.size() - tmpPath.size());
+//		cout << "Path name = " << dirPath.c_str() << endl;
 
 		// Load a set of textures
+//		cout << "Materials=" << pModel->nmaterials << endl;
 		for (int ii = 0; ii < pModel->nmaterials; ++ii)
 		{
 			// Acquire a texture name
 			string sTexFile = pModel->materials[ii]->texture1_map.name;
 
 			if (!sTexFile.empty()) {
-				string textureFilename = dirpath + "/" + sTexFile;
+				string textureFilename = dirPath + "/" + sTexFile;
 				const char * sp = strrchr(sTexFile.c_str(), '.');
 				if (strcmp(sp, ".gif") == 0 || strcmp(sp, ".GIF") == 0) {
 					cerr << "cvLoadImage does not support GIF format! -> "
@@ -689,13 +704,6 @@ namespace TextureTransfer
 			}
 		}
 		return (texList);
-	}
-
-	void ViewingModel::VertexCorrection(void) {
-		//	REP(loop,GetMeshSize()){
-		//		REP(id,GetMeshIndicesSum(loop) ){
-		//		}
-		//	}
 	}
 
 	bool ViewingModel::LoadMatrixFrom3ds(void) {
@@ -1140,7 +1148,7 @@ namespace TextureTransfer
 		{
 			REP(verIdx, mMesh[loopMesh]->mVertices.size())
 			{
-				mLSCM->mMesh->AddVertex(mMesh[loopMesh]->mVertices[verIdx].point, Vector2(0,0));
+				mLSCM->mMesh->AddVertex(mMesh[loopMesh]->mVertices[verIdx].point, mMesh[loopMesh]->mVertices[verIdx].tex_coord);
 #if FILE_WRITE == 1
 				out << "v "
 						<< mLSCM->mMesh->mVertices[verIdx].point.x << "\t"
@@ -1150,8 +1158,9 @@ namespace TextureTransfer
 #endif
 				//init texture number information
 				mLSCM->mMesh->mVertices[verIdx].textureNumber = loopMesh;
-				mLSCM->mMesh->mTexnumVernum.push_back(pair<int,int>(loopMesh, verIdx));
-
+//				int tmpTexID = mLSCM->mMesh->mTexnumVernum.back().mModelTexIdx;
+//				int tmpVerID = mLSCM->mMesh->mTexnumVernum.back().mModelVertexIdx;
+//				printf("(%d), TEXID=%d, \n", tmpVerID, tmpTexID);
 			}
 		}
 
@@ -1161,11 +1170,18 @@ namespace TextureTransfer
 		{
 			REP(faceIdx, mMesh[loopMesh]->mFaces.size())
 			{
+				//テクスチャマッピングのため、mModelとmLSCMモデルの頂点の対応付け(1)
+				ModelCorresPondense tmpModel(loopMesh, faceIdx, 0);
+				mLSCM->mMesh->mTexnumVernum.push_back(tmpModel);
+
 				mLSCM->mMesh->BeginFacet();
 				REP(vertexIdx, mMesh[loopMesh]->mFaces[faceIdx].size())
 				{
 					int index = mMesh[loopMesh]->mFaces[faceIdx].at(vertexIdx);
 					mLSCM->mMesh->AddVertex2Facet(index + sumOfVertices);
+
+					//テクスチャマッピングのため、mModelとmLSCMモデルの頂点の対応付け(2)
+					mLSCM->mMesh->mTexnumVernum.back().mFaceIdx.push_back(faceIdx);
 				}
 				mLSCM->mMesh->EndFacet();
 			}
