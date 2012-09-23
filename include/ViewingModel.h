@@ -120,8 +120,8 @@ namespace TextureTransfer
 
 	  std::deque<Texture *> mTexture;			// A set of Textures 2011.6.7
 
-	  std::pair<int,IndexedMesh> mSelectedMesh; //first : an index for the matrix having harmonic field(mTexparts), second: a set of meshes
-
+	  std::pair<int,IndexedMesh> mSelectedMesh;	//first : an index for the matrix having harmonic field(mTexparts), second: a set of meshes
+	  std::vector<int> mSelectedFace;				//corresponding to mLSCM's face index
 	  float  mScales;
 	  double mAngles[3];
 	  double mTrans[3];

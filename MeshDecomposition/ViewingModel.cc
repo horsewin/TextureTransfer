@@ -979,6 +979,7 @@ namespace TextureTransfer
 
 		//init selected mesh information
 		mSelectedMesh.second.Clear();
+		mSelectedFace.clear();
 
 		if(glMouse)
 		{
@@ -1107,6 +1108,7 @@ namespace TextureTransfer
 						mSelectedMesh.second.mVertices[idx].locked = true;
 					}
 					mSelectedMesh.second.mFaces.push_back(face);
+					mSelectedFace.push_back(loopFace);
 //					mLSCM->mMesh->end_facet();
 				}
 			}
@@ -1377,7 +1379,7 @@ namespace TextureTransfer
 		//  mLSCM.push_back(lscm);
 
 		mLSCM = boost::shared_ptr<LSCM>(new LSCM());
-
+		mSelectedFace.clear();
 		//for mesh decomposition
 		Load3DModel();
 	}

@@ -924,8 +924,7 @@ void DrawAtlasWithTextures(ViewingModel*& model)
 			REP(loopVer, lscmMesh->mFaces[loopFace].size())
 			{
 				faceIdx = lscmMesh->mTexnumVernum[loopFace].mFaceIdx[loopVer];
-				if (lscmMesh->mTexnumVernum[loopFace].mTextureNumber
-						== texNumber) {
+				if (lscmMesh->mTexnumVernum[loopFace].mTextureNumber == texNumber) {
 					compose = true;
 					break;
 				}
@@ -958,6 +957,52 @@ void DrawAtlasWithTextures(ViewingModel*& model)
 		model->mTexture[texNumber]->unbind();
 	}
 }
+void DrawAtlasPartWithNewTexture(ViewingModel*& model)
+{
+	IndexedMesh* lscmMesh = model->mLSCM->mMesh.get();
+	glColor3f(1.0f, 1.0f, 1.0f);
+
+	REP(texNumber, model->mTexture.size())
+	{
+		//setting appropriate texture
+		model->mTexture[texNumber]->bind();
+
+		//for warping texture mapping to size (W_WIDTH/2, W_HEIGHT/2)
+		double ratio_x = (ConstParams::W_WIDTH * 0.5 - 0)
+				/ (lscmMesh->mTexMax.x - lscmMesh->mTexMin.x);
+		double ratio_y = (ConstParams::W_HEIGHT * 0.5 - 0)
+				/ (lscmMesh->mTexMax.y - lscmMesh->mTexMin.y);
+
+		glBegin (GL_TRIANGLES);
+		assert(
+				model->mSelectedMesh.second.mFaces.size()
+						== model->mSelectedFace.size());
+		REP(loopFace, model->mSelectedMesh.second.mFaces.size())
+		{
+			int corrFaceIdx = model->mSelectedFace.at(loopFace);
+
+			REP(loopVer, 3)
+			{
+				Vector2 tex_coord = model->mSelectedMesh.second.mVertices.at(
+						model->mSelectedMesh.second.mFaces[loopFace].at(
+								loopVer)).tex_coord;
+				GLdouble texcos[2], vertex[2];
+
+				//TEXTURE_ARBを用いているためu-v座標を0-1にしなくてもよい
+				texcos[0] = (tex_coord.x - lscmMesh->mTexMin.x) * ratio_x;
+				texcos[1] = (ConstParams::W_HEIGHT / 2
+						- (tex_coord.y - lscmMesh->mTexMin.y) * ratio_y) - 0;
+				vertex[0] = tex_coord.x;
+				vertex[1] = tex_coord.y;
+				glTexCoord2dv(texcos);
+				glVertex2dv(vertex);
+			}
+		}
+		glEnd();
+		model->mTexture[texNumber]->unbind();
+	}
+}
+
 void DrawTextureMonitor(int x, int y, int w, int h, ViewingModel * model,
 		const int & seprationW)
 {
@@ -1048,69 +1093,115 @@ void DrawTextureMonitor(int x, int y, int w, int h, ViewingModel * model,
 	//in case of selecting parts
 	else
 	{
-		assert(model->mLSCM->mMesh->mVertices.size() == model->mLSCM->mMesh->mTextureCoords.size() );
-		//for rendering texture deployments
-		#if TEXTURE_TRIANGLES==0
-			glBegin(GL_LINES);
-		#else
-			glBegin(GL_TRIANGLES);
-		#endif
-
-		REP(faceIdx, model->mSelectedMesh.second.mFaces.size())
+		//showing a texture image
+		if(!textureOFF)
 		{
-//	  for(unsigned int i=0; i<model->mSelectedMesh.second.mTextureCoords.size(); i+=3)
-//	  {
-			Vector2 vertex[3];
-			REP(i,3) {
-				vertex[i] =
-						model->mSelectedMesh.second.mVertices[model->mSelectedMesh.second.mFaces[faceIdx].at(
-								i)].tex_coord;
+			if(model->isNewTexture())
+			{
+				DrawAtlasPartWithNewTexture(model);
 			}
+			else
+			{
+				IndexedMesh* lscmMesh = model->mLSCM->mMesh.get();
+				REP(texNumber, model->mTexture.size())
+				{
+					//テクスチャセット
+					model->mTexture[texNumber]->bind();
 
-			double value;
-			value = model->mLSCM->mMesh->mVertices[model->mSelectedMesh.second.mFaces[faceIdx].at(
-							0)].harmonicValue;
-			ColorSetting(value, true);
+					glColor4f(1.0f, 1.0f, 1.0f, 0.0f);
+					glBegin (GL_TRIANGLES);
 
-//			std::vector< CVD::Rgb< CVD::byte > > colour = model->mTexture[0]->getData();
-//			Vector2 tmp_colour;
-//			tmp_colour = model->mSelectedMesh.second.mVertices[model->mSelectedMesh.second.mFaces[faceIdx].at(0)].tex_coord;
+					assert(model->mSelectedMesh.second.mFaces.size() == model->mSelectedFace.size());
+					REP(loopFace, model->mSelectedMesh.second.mFaces.size())
+					{
+						//対象の面を構成する頂点が同一のテクスチャ画像を参照しているかチェック
+						bool compose = false;
+						int faceIdx = 0;
+						int corrFaceIdx = model->mSelectedFace.at(loopFace);
+						REP(i,3)
+						{
+							faceIdx = lscmMesh->mTexnumVernum[corrFaceIdx].mFaceIdx[i];
+							if (lscmMesh->mTexnumVernum[corrFaceIdx].mTextureNumber == texNumber)
+							{
+								compose = true;
+								break;
+							}
+						}
 
-#if TEXTURE_TRIANGLES==0
-			glVertex2f(vertex[0].x,vertex[0].y);
-			glVertex2f(vertex[1].x,vertex[1].y);
-			glVertex2f(vertex[1].x,vertex[1].y);
-			glVertex2f(vertex[2].x,vertex[2].y);
-			glVertex2f(vertex[2].x,vertex[2].y);
-			glVertex2f(vertex[0].x,vertex[0].y);
-#else
-			glVertex2f(vertex[0].x, vertex[0].y);
+						if (!compose) continue;
 
-			value = model->mLSCM->mMesh->mVertices[model->mSelectedMesh.second.mFaces[faceIdx].at(
-							1)].harmonicValue;
-			ColorSetting(value, true);
-			glVertex2f(vertex[1].x, vertex[1].y);
+						REP(loopVer, 3)
+						{
+							//対応関係のための指数
+							int corVerIdx = model->mMesh[texNumber]->mFaces[faceIdx].at(loopVer);
+							GLfloat corTexcos[] = {
+											model->mMesh[texNumber]->mVertices[corVerIdx].tex_coord.x,
+											model->mMesh[texNumber]->mVertices[corVerIdx].tex_coord.y
+							};
 
-			value = model->mLSCM->mMesh->mVertices[model->mSelectedMesh.second.mFaces[faceIdx].at(
-							2)].harmonicValue;
-			ColorSetting(value, true);
-			glVertex2f(vertex[2].x, vertex[2].y);
+							Vector2 tex_coord = model->mSelectedMesh.second.mVertices.at(
+									model->mSelectedMesh.second.mFaces[loopFace].at(
+											loopVer)).tex_coord;
+							GLfloat vertex[2];
+							vertex[0] = tex_coord.x;
+							vertex[1] = tex_coord.y;
 
-#endif
+							glTexCoord2fv(corTexcos);
+							glVertex2fv(vertex);
+						}
+					}
+					glEnd();
+					model->mTexture[texNumber]->unbind();
+				}
+			}
 		}
-		glEnd();
+		//with harmonic field
+		else
+		{
+			assert(model->mLSCM->mMesh->mVertices.size() == model->mLSCM->mMesh->mTextureCoords.size() );
+			//for rendering texture deployments
+			#if TEXTURE_TRIANGLES==0
+				glBegin(GL_LINES);
+			#else
+			glBegin(GL_TRIANGLES);
+			#endif
+
+			REP(faceIdx, model->mSelectedMesh.second.mFaces.size())
+			{
+				Vector2 vertex[3];
+				REP(i,3) {
+					vertex[i] =
+							model->mSelectedMesh.second.mVertices.at(model->mSelectedMesh.second.mFaces[faceIdx].at(i)).tex_coord;
+				}
+
+				double value;
+				value = model->mLSCM->mMesh->mVertices[model->mSelectedMesh.second.mFaces[faceIdx].at(0)].harmonicValue;
+
+				ColorSetting(value, true);
+
+			#if TEXTURE_TRIANGLES==0
+					glVertex2f(vertex[0].x,vertex[0].y);
+					glVertex2f(vertex[1].x,vertex[1].y);
+					glVertex2f(vertex[1].x,vertex[1].y);
+					glVertex2f(vertex[2].x,vertex[2].y);
+					glVertex2f(vertex[2].x,vertex[2].y);
+					glVertex2f(vertex[0].x,vertex[0].y);
+			#else
+				glVertex2f(vertex[0].x, vertex[0].y);
+
+				value = model->mLSCM->mMesh->mVertices[model->mSelectedMesh.second.mFaces[faceIdx].at(1)].harmonicValue;
+				ColorSetting(value, true);
+				glVertex2f(vertex[1].x, vertex[1].y);
+
+				value = model->mLSCM->mMesh->mVertices[model->mSelectedMesh.second.mFaces[faceIdx].at(2)].harmonicValue;
+				ColorSetting(value, true);
+				glVertex2f(vertex[2].x, vertex[2].y);
+
+			#endif
+			}
+			glEnd();
+		} /* else(textureOFF != 0) */
 	}
-
-	//drawing frame lines
-	//  glColor3d(0,0,0);
-	//  glLineWidth(5);
-	//  glBegin(GL_LINES);
-	//  glVertex2f(im->mTexMin.x, im->mTexMin.y);
-	//  glVertex2f(im->mTexMax.x, im->mTexMin.y);
-	//  glVertex2f(im->mTexMax.x, im->mTexMax.y);
-	//  glVertex2f(im->mTexMax.x, im->mTexMin.y);
-	//  glEnd();
-
 	//<-------
 	//this is the end of rendering part
 
