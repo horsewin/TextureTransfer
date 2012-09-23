@@ -168,8 +168,12 @@ namespace TextureTransfer
 	}
 
 	//to correct calculation of LSCM in the case of reconstructed objects
-	void IndexedMesh::VertexSynthesis( void )
+	//@return : corresponding to original indices
+	std::vector<int> IndexedMesh::VertexSynthesis( void )
 	{
+		std::vector<int> originalIndices;
+		originalIndices.clear();
+
 		uint current_id = 0;
 
 		int dup = 0;
@@ -204,8 +208,9 @@ namespace TextureTransfer
 				current_id++;
 				newVertices.push_back(mVertices[id_seek]);
 			}
+			originalIndices.push_back(mVertices[id_seek].id);
 		}
-
+		assert(mVertices.size() == originalIndices.size());
 		std::cout << "Shrink: " << mVertices.size() << " => " << newVertices.size() << std::endl;
 
 		//revise face info
@@ -227,6 +232,7 @@ namespace TextureTransfer
 //		{
 //			mVertices.push_back(newVertices[i]);
 //		}
+		return originalIndices;
 	}
 
 } //<--------- end of namespace TextureTransfer --------------

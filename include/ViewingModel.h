@@ -67,15 +67,14 @@ namespace TextureTransfer
 	  ViewingModel(const char * name = NULL);
 	  ~ViewingModel();
 
-	  bool RunLSCM();
 	  void Save3DModel(const char * filename);
 
-	  bool LoadTexture(const char * filename);
+	  void LoadTexture(const char * filename);
 	  bool CheckFittingVertices(GLint *viewport, GLdouble *modelview, GLdouble *projection, cv::Point3d start_point, cv::Point3d end_point, bool glMouse = true);
 	  void UpdateMatrix();
 	  void CorrespondTexCoord(GLint *viewport, GLdouble *modelview, GLdouble *projection,
 			  cv::Point3d start_point, cv::Point3d end_point, Vector2 & t1, Vector2 & t2, Vector3 & p1, Vector3 & p2, bool glMouse = true);
-	  void RenewMeshDataConstruct(const int & separateNumber);
+	  void RenewMeshDataConstruct();
 
 	  void  QueryNormal(const int & outer_loop, const int & mesh_index, const int & vertexIdx, GLdouble * normal);
 	  void  QueryVertex(const int & outer_loop, const int & mesh_index, const int & vertexIdx, GLdouble * vertex);
@@ -86,26 +85,35 @@ namespace TextureTransfer
 
 	  int GetMeshSize() const;
 	  int GetMeshFacesSize(const int & outer_loop) const;
-	  int GetMeshInnerFacesSize(const int & outer_loop, const int & inner_loop) const { return mMesh[outer_loop]->mFaces[inner_loop].size();}
+	  int GetMeshInnerFacesSize(const int & outer_loop, const int & inner_loop) const;
 	  int GetMeshFlag(const int & outer_loop) const;
 	  void IncrementSumOfStrokes();
 
-	  bool IsMeshSelected() const { return mMeshSelected; }
+	  bool isNewTexture() const {
+		return mNewTexture;
+	}
 
-	  void SetMeshSelected(bool meshSelected) { mMeshSelected = meshSelected; }
+	bool IsMeshSelected() const {
+		return mMeshSelected;
+	}
+
+	void SetMeshSelected(bool meshSelected) {
+		mMeshSelected = meshSelected;
+	}
 
 	 private:
-	  void Load3DModel();
-	  void ConvertDataStructure();
-	  bool LoadMatrixFrom3ds();
-	  bool LoadMatrixFromObj();
+		void Load3DModel();
+		void ConvertDataStructure();
+		bool LoadMatrixFrom3ds();
+		bool LoadMatrixFromObj();
+		void Load3DSModel();
+		void LoadObjModel(const char* modelName = NULL);
+		std::deque<Texture*> LoadTextures(Lib3dsFile * pModel);
 
-	  void Load3DSModel();
-	  void LoadObjModel(const char * modelName = NULL);
-	  std::deque<Texture *> LoadTextures(::Lib3dsFile * pModel);
+		void ResetAllIndices();
 
-	  void SetSelectedMeshData(const int& loopVer);
-	  void SetSelectedFaces(const int& loopTex);
+		void SetSelectedMeshData(const int& loopVer);
+		void SetSelectedFaces(const int& loopTex);
 
 	 public:
 	  boost::shared_ptr<LSCM> mLSCM;
@@ -132,9 +140,9 @@ namespace TextureTransfer
 	  Eigen::VectorXd b, mHarmonicValue;
 
 	  bool mIsConvert;
-	  bool mIsLoadMatrix;
-	  bool mHasTexture;
+	  bool mHasTexture;										//texture image is loaded?
 	  bool mMeshSelected;
+	  bool mNewTexture;										//assign new texture image?
 	};
 }
 #endif

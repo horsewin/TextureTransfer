@@ -31,7 +31,7 @@ namespace TextureTransfer
 	  void AddVertex2Facet(unsigned int i);
 	  void Clear();
 	  void Save(const std::string & file_name);
-	  void VertexSynthesis( void );
+	  std::vector<int> VertexSynthesis( void );
 
 	  void FindTextureMax();
 

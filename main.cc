@@ -26,6 +26,8 @@
 #define TEXTURE_TRIANGLES 1
 #define VISUALIZE 0 //OpenCVのウィンドウ上にテクスチャ展開の点群を表示する
 #define FEEDBACK_VISUALIZE 0 //OpenCVから計算してきた輪郭情報をGL上に持っていくときの輪郭情報を表示する
+#define DEBUG_VISUALIZING_IN_AR 0
+#define DEBUG_INTERACTION_POINTS 0
 
 const int SEPARATION = 5;
 const static GLfloat lit_amb[4] = { 0.4f, 0.4f, 0.4f, 1.0 }; /* 環境光の強さ */
@@ -44,8 +46,10 @@ namespace TextureTransfer
 
 	const char *  ConstParams::DATABASEDIR = "/home/umakatsu/Dropbox/Lab/ModelDatabase/";
 }
+
 using namespace std;
 using namespace TextureTransfer;
+
 //---------------------------------------------------------------------------
 // Global
 //---------------------------------------------------------------------------
@@ -104,7 +108,8 @@ void DrawString(const char *str, void *font, float x, float y, float z) {
 
 }
 
-void DrawController() {
+void DrawController()
+{
 	glPushAttrib(GL_CURRENT_BIT | GL_DEPTH_BUFFER_BIT); // retrieve color and Z buffer
 	glColor3d(0, 0, 0);
 	char str[50], textureStr[50];
@@ -244,7 +249,7 @@ void DirectFileInput()
 				modelview[window], projection[window], start_point, end_point,
 				false)) {
 			models[manipulation - 1]->UpdateMatrix();
-			models[manipulation - 1]->RenewMeshDataConstruct(2);
+			models[manipulation - 1]->RenewMeshDataConstruct();
 			models[manipulation - 1]->mLSCM->mMesh->FindTextureMax();
 		}
 		models[manipulation - 1]->CorrespondTexCoord(viewport[window],
@@ -354,29 +359,6 @@ void keyboard(unsigned char key, int x, int y) {
 		models[manipulation - 1]->mTrans[0] -= 0.5f;
 		break;
 
-	//for direct input of clicked points from file
-	case 'g':
-	{
-
-		break;
-		const char * topTexture = "wood.bmp";
-		::ImageType TextureRGB = (CVD::img_load(topTexture));
-		Texture * tmpTexture = new Texture(static_cast<const ::ImageType>(TextureRGB), topTexture);
-
-		for(int num=0; num<2; num++)
-		{
-			REP(id, models[num]->mLSCM->mMesh->mVertices.size())
-			{
-				//テクスチャ画像番号を更新
-//				models[num]->mLSCM->mMesh->mVertices[id].textureNumber =
-//						models[num]->mTexture.size();
-			}
-			models[num]->mTexture.push_back(tmpTexture);
-		}
-		cout << "Texture Transfer DONE!! Left -> Right. Texture Size = " << models[1]->mTexture.size() << endl;
-
-		break;
-	}
 	case 'r':
 		if (controllObject == MANUPLATE) {
 			controllObject = DECOMPOSITE;
@@ -395,6 +377,7 @@ void keyboard(unsigned char key, int x, int y) {
 	case 'p':
 		textureOFF=!textureOFF;
 		break;
+
 	case 's':
 		if (manipulation == 1)
 		{
@@ -419,25 +402,6 @@ void keyboard(unsigned char key, int x, int y) {
 			TexturePaste(true);
 			string newstr("New"); newstr+= LOADFILENAME2;
 			models[1]->Save3DModel(newstr.c_str());
-//
-//			IndexedMesh * lscmMesh = models[1]->mLSCM->mMesh.get();
-//			REP(verIdx, lscmMesh->mVertices.size())
-//			{
-//				//for warping texture mapping to size (ConstParams::W_WIDTH/2, ConstParams::W_HEIGHT/2)
-//				double ratio_x = (ConstParams::W_WIDTH * 0.5 - 0)
-//						/ (lscmMesh->mTexMax.x - lscmMesh->mTexMin.x);
-//				double ratio_y = (ConstParams::W_HEIGHT * 0.5 - 0)
-//						/ (lscmMesh->mTexMax.y - lscmMesh->mTexMin.y); //
-//
-//				GLfloat texcos[2];
-//				//TEXTURE_ARBを用いているためu-v座標を0-1にしなくてもよい
-//				texcos[0] = (lscmMesh->mVertices[verIdx].tex_coord.x
-//						- lscmMesh->mTexMin.x) * ratio_x;
-//				texcos[1] = (ConstParams::W_HEIGHT / 2
-//						- (lscmMesh->mVertices[verIdx].tex_coord.y
-//								- lscmMesh->mTexMin.y) * ratio_y) - 0;
-//				cout << lscmMesh->mVertices[verIdx].textureNumber << " + " << texcos[0] << "," << texcos[1] << endl;
-//			}
 		}
 		break;
 	}
@@ -477,11 +441,14 @@ void mouse(int button, int state, int x, int y)
 			else
 				window = 4;
 
+			ViewingModel * model = models[manipulation - 1];
+			IndexedMesh * lscmMesh = model->mLSCM->mMesh.get();
+
 			if (models[manipulation - 1]->CheckFittingVertices(viewport[window],
-					modelview[window], projection[window], start_point,
-					end_point)) {
+					modelview[window], projection[window], start_point, end_point))
+			{
 				models[manipulation - 1]->UpdateMatrix();
-				models[manipulation - 1]->RenewMeshDataConstruct(2);
+				models[manipulation - 1]->RenewMeshDataConstruct();
 				models[manipulation - 1]->mLSCM->mMesh->FindTextureMax();
 			}
 			point.clear();
@@ -597,6 +564,115 @@ void CallbackEntry(void) {
 	glutIdleFunc(idle);
 }
 
+void DrawModelWithNewTexture(ViewingModel*& model)
+{
+	IndexedMesh * lscmMesh = model->mLSCM->mMesh.get();
+
+	REP(texNumber, model->mTexture.size())
+	{
+		//テクスチャセット
+		model->mTexture[texNumber]->bind();
+		//for warping texture mapping to size (ConstParams::W_WIDTH/2, ConstParams::W_HEIGHT/2)
+		double ratio_x = (ConstParams::W_WIDTH * 0.5 - 0)
+				/ (lscmMesh->mTexMax.x - lscmMesh->mTexMin.x);
+		double ratio_y = (ConstParams::W_HEIGHT * 0.5 - 0)
+				/ (lscmMesh->mTexMax.y - lscmMesh->mTexMin.y); //
+
+		glBegin (GL_TRIANGLES);
+		REP(loopFace, lscmMesh->mFaces.size())
+		{
+			//対象の面を構成する頂点が同一のテクスチャ画像を参照しているかチェック
+			bool compose = false;
+
+			REP(loopVer, lscmMesh->mFaces[loopFace].size())
+			{
+				int verIndex = lscmMesh->mFaces[loopFace].at(loopVer);
+				if (lscmMesh->mVertices[verIndex].textureNumber == texNumber)
+				{
+					compose = true;
+					break;
+				}
+			}
+
+			if (!compose) continue;
+
+			REP(loopVer, lscmMesh->mFaces[loopFace].size())
+			{
+				int verIndex = lscmMesh->mFaces[loopFace].at(loopVer);
+				{
+					GLdouble texcos[2], vertex[3];
+					//TEXTURE_ARBを用いているためu-v座標を0-1にしなくてもよい
+					texcos[0] = (lscmMesh->mVertices[verIndex].tex_coord.x
+							- lscmMesh->mTexMin.x) * ratio_x;
+					texcos[1] = (ConstParams::W_HEIGHT / 2
+							- (lscmMesh->mVertices[verIndex].tex_coord.y
+									- lscmMesh->mTexMin.y) * ratio_y) - 0;
+					vertex[0] = lscmMesh->mVertices[verIndex].point.x;
+					vertex[1] = lscmMesh->mVertices[verIndex].point.y;
+					vertex[2] = lscmMesh->mVertices[verIndex].point.z;
+
+					glColor3f(1.0f, 1.0f, 1.0f);
+					glTexCoord2dv(texcos);
+					glVertex3dv(vertex);
+				}
+			}
+		}
+		glEnd();
+		model->mTexture[texNumber]->unbind();
+	}
+}
+
+void DrawModelWithTextures(ViewingModel*& model)
+{
+	IndexedMesh * lscmMesh = model->mLSCM->mMesh.get();
+
+	REP(texNumber, model->mTexture.size())
+	{
+		//テクスチャセット
+		model->mTexture[texNumber]->bind();
+
+		glBegin (GL_TRIANGLES);
+		REP(loopFace, lscmMesh->mFaces.size())
+		{
+			//対象の面が同一のテクスチャ画像を参照しているかチェック
+			bool compose = false;
+
+			int faceIdx;
+			REP(loopVer, lscmMesh->mFaces[loopFace].size())
+			{
+				faceIdx = lscmMesh->mTexnumVernum[loopFace].mFaceIdx[loopVer];
+				if (lscmMesh->mTexnumVernum[loopFace].mTextureNumber == texNumber)
+				{
+					compose = true;
+					break;
+				}
+			}
+
+			if (!compose) continue;
+
+			REP(loopVer, lscmMesh->mFaces[loopFace].size())
+			{
+				int verIndex = lscmMesh->mFaces[loopFace].at(loopVer);
+				//対応関係のための指数
+				int corVerIdx = model->mMesh[texNumber]->mFaces[faceIdx].at(loopVer);
+				GLdouble corTexcos[] = {
+						model->mMesh[texNumber]->mVertices[corVerIdx].tex_coord.x,
+						model->mMesh[texNumber]->mVertices[corVerIdx].tex_coord.y };
+				GLdouble vertex[3];
+				vertex[0] = lscmMesh->mVertices[verIndex].point.x;
+				vertex[1] = lscmMesh->mVertices[verIndex].point.y;
+				vertex[2] = lscmMesh->mVertices[verIndex].point.z;
+
+				glColor3f(1.0f, 1.0f, 1.0f);
+				glTexCoord2dv(corTexcos);
+				glVertex3dv(vertex);
+			}
+		}
+		glEnd();
+		model->mTexture[texNumber]->unbind();
+	}
+}
+
 void DrawModelMonitor(int x, int y, int w, int h, ViewingModel * model,
 		bool isStroke, const int & separationW)
 {
@@ -648,14 +724,10 @@ void DrawModelMonitor(int x, int y, int w, int h, ViewingModel * model,
 		glLineWidth(1);
 		glColor3f(1.0f, 0.0f, 0.0f);
 
-		REP(loopMesh, model->GetMeshSize())
+		REP(loopMesh, model->mMesh.size())
 		{
 			GLdouble normal[3];
 			GLdouble vertex[3];
-//
-//			GLfloat ambient[4];
-//			GLfloat diffuse[4];
-//			GLfloat specular[4];
 
 			glBegin(GL_TRIANGLES);
 			REP(faceIdx,model->GetMeshFacesSize(loopMesh) )
@@ -687,100 +759,39 @@ void DrawModelMonitor(int x, int y, int w, int h, ViewingModel * model,
 
 	//Manipulation mode
 	//Input stroke mode
-	else {
-		IndexedMesh * lscmMesh = model->mLSCM->mMesh.get();
-		REP(texNumber, model->mTexture.size())
+	// with texture mapping
+	else
+	{
+		if(model->isNewTexture())
 		{
-			//テクスチャセット
-			model->mTexture[texNumber]->bind();
-
-			//for warping texture mapping to size (ConstParams::W_WIDTH/2, ConstParams::W_HEIGHT/2)
-			double ratio_x = (ConstParams::W_WIDTH * 0.5 - 0)
-					/ (lscmMesh->mTexMax.x - lscmMesh->mTexMin.x);
-			double ratio_y = (ConstParams::W_HEIGHT * 0.5 - 0)
-					/ (lscmMesh->mTexMax.y - lscmMesh->mTexMin.y); //
-
-//			cout << lscmMesh->mFaces.size() << endl;
-
-			glBegin(GL_TRIANGLES);
-			REP(loopFace, lscmMesh->mFaces.size())
-			{
-				//対象の面を構成する頂点が同一のテクスチャ画像を参照しているかチェック
-				bool compose = false;
-
-
-				int faceIdx;
-				REP(loopVer, lscmMesh->mFaces[loopFace].size())
-				{
-					faceIdx = lscmMesh->mTexnumVernum[loopFace].mFaceIdx[loopVer];
-					if( lscmMesh->mTexnumVernum[loopFace].mTextureNumber == texNumber )
-//					int verIndex = lscmMesh->mFaces[loopFace].at(loopVer);
-//					if (lscmMesh->mVertices[verIndex].textureNumber == texNumber)
-					{
-						compose = true;
-						break;
-					}
-				}
-
-				if (!compose)
-					continue;
-
-				REP(loopVer, lscmMesh->mFaces[loopFace].size())
-				{
-					int verIndex = lscmMesh->mFaces[loopFace].at(loopVer);
-					int texIndex = verIndex;
-
-					//対応関係のための指数
-					int corVerIdx= model->mMesh[texNumber]->mFaces[faceIdx].at(loopVer);
-					GLfloat corTexcos[] =
-					{model->mMesh[texNumber]->mVertices[corVerIdx].tex_coord.x, model->mMesh[texNumber]->mVertices[corVerIdx].tex_coord.y};
-
-					glMaterialfv(GL_FRONT_AND_BACK, GL_AMBIENT, lit_amb);
-					glMaterialfv(GL_FRONT_AND_BACK, GL_DIFFUSE, lit_dif);
-					glMaterialfv(GL_FRONT_AND_BACK, GL_SPECULAR, lit_spc);
-					{
-						GLfloat texcos[2];
-						//TEXTURE_ARBを用いているためu-v座標を0-1にしなくてもよい
-						texcos[0] = (lscmMesh->mVertices[texIndex].tex_coord.x
-								- lscmMesh->mTexMin.x) * ratio_x;
-						texcos[1] = (ConstParams::W_HEIGHT / 2
-								- (lscmMesh->mVertices[texIndex].tex_coord.y
-										- lscmMesh->mTexMin.y) * ratio_y) - 0;
-						GLdouble vertex[3];
-						vertex[0] = lscmMesh->mVertices[verIndex].point.x;
-						vertex[1] = lscmMesh->mVertices[verIndex].point.y;
-						vertex[2] = lscmMesh->mVertices[verIndex].point.z;
-
-						glColor3f(1.0f, 1.0f, 1.0f);
-						glTexCoord2fv(corTexcos);
-//						glTexCoord2fv(texcos);
-						glVertex3dv(vertex);
-					}
-				}
-			}
-			glEnd();
-			model->mTexture[texNumber]->unbind();
+			DrawModelWithNewTexture(model);
+		}
+		else
+		{
+			DrawModelWithTextures(model);
 		}
 
+#if DEBUG_VISUALIZING_IN_AR == 1
 		//for texture transfer in AR
-//		glBegin(GL_LINE_STRIP);
-//			glColor3f(1.0f, 0.0f, 0.0f);
-//			glVertex3d(0,0,0);
-//
-//			std::ifstream input("Model3DS/debug_remote.txt") ;
-//			while (input) //until input data continues
-//			{
-//				char line[1024];
-//				input.getline(line, 1024);
-//				std::stringstream line_input(line);
-//
-//				GLdouble ver[3];
-//				line_input >> ver[0] >> ver[1] >> ver[2];
-//				glLineWidth(25);
-//				glColor3f(.0f, 1.0f, 0.0f);
-//				glVertex3dv(ver);
-//			}
-//		glEnd();
+		glBegin(GL_LINE_STRIP);
+			glColor3f(1.0f, 0.0f, 0.0f);
+			glVertex3d(0,0,0);
+
+			std::ifstream input("Model3DS/debug_remote.txt") ;
+			while (input) //until input data continues
+			{
+				char line[1024];
+				input.getline(line, 1024);
+				std::stringstream line_input(line);
+
+				GLdouble ver[3];
+				line_input >> ver[0] >> ver[1] >> ver[2];
+				glLineWidth(25);
+				glColor3f(.0f, 1.0f, 0.0f);
+				glVertex3dv(ver);
+			}
+		glEnd();
+#endif
 	}
 	//get each transform matrix
 	glPopMatrix();
@@ -816,7 +827,8 @@ void DrawModelMonitor(int x, int y, int w, int h, ViewingModel * model,
 	DrawController();
 
 	//display a sentence if a mesh in the model have been selected
-	if (model->IsMeshSelected()) {
+	if (model->IsMeshSelected())
+	{
 		// retrieve color and Z buffer
 		glPushAttrib(GL_CURRENT_BIT | GL_DEPTH_BUFFER_BIT);
 
@@ -828,25 +840,124 @@ void DrawModelMonitor(int x, int y, int w, int h, ViewingModel * model,
 		glPopAttrib();
 
 	}
-
-	// frame
-//  glBegin(GL_LINES);
-//  glX = ConstParams::W_WIDTH/2;
-//  glY = 2*viewport[3];
-//  glZ = 0;
-//  gluUnProject((GLdouble)glX, (GLdouble)glY, (GLdouble)glZ,modelview, projection, viewport, &ox, &oy, &oz);
-//  glVertex3d(ox,oy,oz);
-//
-//  glX = ConstParams::W_WIDTH/2;
-//  glY = viewport[3];
-//  glZ = 0;
-//  gluUnProject((GLdouble)glX, (GLdouble)glY, (GLdouble)glZ,modelview, projection, viewport, &ox, &oy, &oz);
-//  glVertex3d(ox,oy,oz);
-//  glEnd();
-
 	glEnable(GL_DEPTH_TEST);
 }
 
+void DrawAtlasWithNewTexture(ViewingModel*& model)
+{
+	IndexedMesh* lscmMesh = model->mLSCM->mMesh.get();
+
+	REP(texNumber, model->mTexture.size())
+	{
+		//テクスチャセット
+		model->mTexture[texNumber]->bind();
+
+		//for warping texture mapping to size (W_WIDTH/2, W_HEIGHT/2)
+		double ratio_x = (ConstParams::W_WIDTH * 0.5 - 0)
+				/ (lscmMesh->mTexMax.x - lscmMesh->mTexMin.x);
+		double ratio_y = (ConstParams::W_HEIGHT * 0.5 - 0)
+				/ (lscmMesh->mTexMax.y - lscmMesh->mTexMin.y);
+
+//			cout << lscmMesh->mFaces.size() << endl;
+
+		glBegin(GL_TRIANGLES);
+		REP(loopFace, lscmMesh->mFaces.size())
+		{
+			//対象の面を構成する頂点が同一のテクスチャ画像を参照しているかチェック
+			bool compose = false;
+
+			REP(loopVer, lscmMesh->mFaces[loopFace].size())
+			{
+				int verIndex = lscmMesh->mFaces[loopFace].at(loopVer);
+				if (lscmMesh->mVertices[verIndex].textureNumber == texNumber) {
+					compose = true;
+					break;
+				}
+			}
+
+			if (!compose) continue;
+
+			REP(loopVer, lscmMesh->mFaces[loopFace].size())
+			{
+				int verIndex = lscmMesh->mFaces[loopFace].at(loopVer);
+				glMaterialfv(GL_FRONT_AND_BACK, GL_AMBIENT, lit_amb);
+				glMaterialfv(GL_FRONT_AND_BACK, GL_DIFFUSE, lit_dif);
+				glMaterialfv(GL_FRONT_AND_BACK, GL_SPECULAR, lit_spc);
+				{
+					GLdouble texcos[2], vertex[2];
+					//TEXTURE_ARBを用いているためu-v座標を0-1にしなくてもよい
+					texcos[0] = (lscmMesh->mVertices[verIndex].tex_coord.x
+							- lscmMesh->mTexMin.x) * ratio_x;
+					texcos[1] = (ConstParams::W_HEIGHT / 2
+							- (lscmMesh->mVertices[verIndex].tex_coord.y
+									- lscmMesh->mTexMin.y) * ratio_y) - 0;
+
+					vertex[0] = lscmMesh->mVertices[verIndex].tex_coord.x;
+					vertex[1] = lscmMesh->mVertices[verIndex].tex_coord.y;
+
+					glColor3f(1.0f, 1.0f, 1.0f);
+					glTexCoord2dv(texcos);
+					glVertex2dv(vertex);
+				}
+			}
+		}
+		glEnd();
+		model->mTexture[texNumber]->unbind();
+	}
+}
+
+void DrawAtlasWithTextures(ViewingModel*& model)
+{
+	IndexedMesh* lscmMesh = model->mLSCM->mMesh.get();
+	REP(texNumber, model->mTexture.size())
+	{
+		//テクスチャセット
+		model->mTexture[texNumber]->bind();
+
+		glColor4f(1.0f, 1.0f, 1.0f, 0.0f);
+		glBegin (GL_TRIANGLES);
+		REP(loopFace, lscmMesh->mFaces.size())
+		{
+			//対象の面を構成する頂点が同一のテクスチャ画像を参照しているかチェック
+			bool compose = false;
+			int faceIdx = 0;
+			REP(loopVer, lscmMesh->mFaces[loopFace].size())
+			{
+				faceIdx = lscmMesh->mTexnumVernum[loopFace].mFaceIdx[loopVer];
+				if (lscmMesh->mTexnumVernum[loopFace].mTextureNumber
+						== texNumber) {
+					compose = true;
+					break;
+				}
+			}
+
+			if (!compose)
+				continue;
+
+			REP(loopVer, lscmMesh->mFaces[loopFace].size())
+			{
+				//対応関係のための指数
+				int corVerIdx = model->mMesh[texNumber]->mFaces[faceIdx].at(
+						loopVer);
+				GLfloat corTexcos[] =
+						{
+								model->mMesh[texNumber]->mVertices[corVerIdx].tex_coord.x,
+								model->mMesh[texNumber]->mVertices[corVerIdx].tex_coord.y };
+
+				int verIndex = lscmMesh->mFaces[loopFace].at(loopVer);
+				{
+					GLfloat vertex[2];
+					vertex[0] = lscmMesh->mVertices[verIndex].tex_coord.x;
+					vertex[1] = lscmMesh->mVertices[verIndex].tex_coord.y;
+					glTexCoord2fv(corTexcos);
+					glVertex2fv(vertex);
+				}
+			}
+		}
+		glEnd();
+		model->mTexture[texNumber]->unbind();
+	}
+}
 void DrawTextureMonitor(int x, int y, int w, int h, ViewingModel * model,
 		const int & seprationW)
 {
@@ -865,93 +976,34 @@ void DrawTextureMonitor(int x, int y, int w, int h, ViewingModel * model,
 	//render something from here
 	// ------>
 
+#if DEBUG_INTERACTION_POINTS == 1
 	//for debug (interaction points)
-//	glColor3d(0, 0, .5);
-//	glLineWidth(3);
-//	glBegin(GL_LINES);
-//	glVertex2f(texPoint[0].x, texPoint[0].y);
-//	glVertex2f(texPoint[1].x, texPoint[1].y);
-//	glEnd();
-
-	IndexedMesh * im = model->mLSCM->mMesh.get();
+	glColor3d(0, 0, .5);
+	glLineWidth(3);
+	glBegin(GL_LINES);
+	glVertex2f(texPoint[0].x, texPoint[0].y);
+	glVertex2f(texPoint[1].x, texPoint[1].y);
+	glEnd();
+#endif
 
 	if (controllObject != SELECT)
 	{
+		//showing a texture image
 		if(!textureOFF)
 		{
-			for(int texNumber=0; texNumber<model->mTexture.size(); texNumber++)
+			if(model->isNewTexture())
 			{
-				//テクスチャセット
-				model->mTexture[texNumber]->bind();
-
-				//for warping texture mapping to size (ConstParams::W_WIDTH/2, ConstParams::W_HEIGHT/2)
-				double ratio_x = (ConstParams::W_WIDTH * 0.5 - 0)
-						/ (im->mTexMax.x - im->mTexMin.x);
-				double ratio_y = (ConstParams::W_HEIGHT * 0.5 - 0)
-						/ (im->mTexMax.y - im->mTexMin.y);
-
-				glBegin(GL_TRIANGLES);
-				REP(loopFace, im->mFaces.size())
-				{
-					//対象の面を構成する頂点が同一のテクスチャ画像を参照しているかチェック
-					bool compose = false;
-					int faceIdx = 0;
-					REP(loopVer, im->mFaces[loopFace].size())
-					{
-						faceIdx = im->mTexnumVernum[loopFace].mFaceIdx[loopVer];
-						if( im->mTexnumVernum[loopFace].mTextureNumber == texNumber)
-//						int verIndex = im->mFaces[loopFace].at(loopVer);
-//						if (im->mVertices[verIndex].textureNumber == texNumber)
-						{
-							compose = true;
-							break;
-						}
-					}
-
-					if (!compose)
-						continue;
-
-					REP(loopVer, im->mFaces[loopFace].size())
-					{
-						//対応関係のための指数
-						int corVerIdx= model->mMesh[texNumber]->mFaces[faceIdx].at(loopVer);
-						GLfloat corTexcos[] =
-						{model->mMesh[texNumber]->mVertices[corVerIdx].tex_coord.x, model->mMesh[texNumber]->mVertices[corVerIdx].tex_coord.y};
-
-						int verIndex = im->mFaces[loopFace].at(loopVer);
-						{
-							GLfloat texcos[2];
-							//TEXTURE_ARBを用いているためu-v座標を0-1にしなくてもよい
-							texcos[0] = (im->mVertices[verIndex].tex_coord.x
-									- im->mTexMin.x) * ratio_x;
-							texcos[1] = (ConstParams::W_HEIGHT / 2
-									- (im->mVertices[verIndex].tex_coord.y
-											- im->mTexMin.y) * ratio_y) - 0;
-//							glTexCoord2fv(texcos);
-							if(texNumber==0)
-							{
-								glColor4f(0.0f, 1.0f, 0.0f, 1.0f);
-								glTexCoord2fv(corTexcos);
-
-							}else{
-								glColor4f(1.0f, 1.0f, 1.0f, 0.0f);
-								glTexCoord2fv(corTexcos);
-							}
-							GLfloat vertex[2];
-							vertex[0] = im->mVertices[verIndex].tex_coord.x;
-							vertex[1] = im->mVertices[verIndex].tex_coord.y;
-							glVertex2fv(vertex);
-
-//							printf("TextureNumber=%d VertexID=%d\n", texNumber, verIndex);
-						}
-					}
-				}
-				glEnd();
-				model->mTexture[texNumber]->unbind();
+				DrawAtlasWithNewTexture(model);
+			}
+			else
+			{
+				DrawAtlasWithTextures(model);
 			}
 		}
 		else
 		{
+			IndexedMesh * lscmMesh = model->mLSCM->mMesh.get();
+
 			//for rendering texture deployments
 			#if TEXTURE_TRIANGLES==0
 				glBegin(GL_LINES);
@@ -959,15 +1011,15 @@ void DrawTextureMonitor(int x, int y, int w, int h, ViewingModel * model,
 				glBegin(GL_TRIANGLES);
 			#endif
 
-			REP(faceIdx, im->mFaces.size() )
+			REP(faceIdx, lscmMesh->mFaces.size() )
 			{
 	#if TEXTURE_TRIANGLES==0
 				Vector2 vertex[3];
 				REP(i,3){
-					int index = im->mFaces[faceIdx].at(i);
-					vertex[i].x = im->mVertices[index].tex_coord.x;
-					vertex[i].y = im->mVertices[index].tex_coord.y;
-					double val = im->mVertices[index].harmonicValue;
+					int index = lscmMesh->mFaces[faceIdx].at(i);
+					vertex[i].x = lscmMesh->mVertices[index].tex_coord.x;
+					vertex[i].y = lscmMesh->mVertices[index].tex_coord.y;
+					double val = lscmMesh->mVertices[index].harmonicValue;
 					ColorSetting(val, true);
 				}
 				glVertex2f(vertex[0].x,vertex[0].y);
@@ -977,13 +1029,13 @@ void DrawTextureMonitor(int x, int y, int w, int h, ViewingModel * model,
 				glVertex2f(vertex[2].x,vertex[2].y);
 				glVertex2f(vertex[0].x,vertex[0].y);
 	#else
-				REP(verIdx, im->mFaces[faceIdx].size()) {
+				REP(verIdx, lscmMesh->mFaces[faceIdx].size()) {
 					Vector2 vertex;
-					int index = im->mFaces[faceIdx].at(verIdx);
-					vertex.x = im->mVertices[index].tex_coord.x;
-					vertex.y = im->mVertices[index].tex_coord.y;
+					int index = lscmMesh->mFaces[faceIdx].at(verIdx);
+					vertex.x = lscmMesh->mVertices[index].tex_coord.x;
+					vertex.y = lscmMesh->mVertices[index].tex_coord.y;
 
-					double val = im->mVertices[index].harmonicValue;
+					double val = lscmMesh->mVertices[index].harmonicValue;
 					ColorSetting(val, true);
 					glVertex2f(vertex.x, vertex.y);
 				}
@@ -991,7 +1043,8 @@ void DrawTextureMonitor(int x, int y, int w, int h, ViewingModel * model,
 			}
 			glEnd();
 		}
-	}
+	} /* if (controllObject != SELECT) */
+
 	//in case of selecting parts
 	else
 	{
@@ -1187,7 +1240,6 @@ void Init()
 //	glEnable(GL_LIGHTING);
 	glColorMaterial(GL_FRONT_AND_BACK, GL_AMBIENT_AND_DIFFUSE);
 	glEnable(GL_COLOR_MATERIAL);
-
 	glShadeModel(GL_SMOOTH);
 
 	//load 3ds model
@@ -1199,21 +1251,17 @@ void Init()
 	models[1] = new ViewingModel(model2Name.str().c_str());
 	manipulation = 1;
 
-	models[0]->LoadTexture("texture1.bmp");
+	models[0]->LoadTexture("key2.bmp");
 	models[0]->mLSCM->run("CG");
-	models[0]->mLSCM->mMesh->Save("");
 	models[0]->mLSCM->mMesh->FindTextureMax();
 //
 	models[1]->LoadTexture("wood.bmp");
 	models[1]->mLSCM->run("CG");
-	models[1]->mLSCM->mMesh->Save("");
 	models[1]->mLSCM->mMesh->FindTextureMax();
 
 	displayTexture = true;
 	controllObject = SELECT;
 	textureOFF = false;
-
-	keyboard('g',0,0);
 }
 
 int main(int argc, char *argv[])
@@ -1226,10 +1274,9 @@ int main(int argc, char *argv[])
 
 	CallbackEntry();
 
-	if(argc == 2)
+	if(argc == 2) //has direct input?
 	{
 		strcpy(filename, argv[1]);
-//		strcpy(filename, "Model3DS/debug_remote.txt");
 		fileInput = 1;
 	}
 	else if( argc == 3)
@@ -1246,9 +1293,6 @@ int main(int argc, char *argv[])
 		LOADFILENAME2		= strtok(argv[2], ".");
 		LOADFILEFORMAT2	+= ".";
 		LOADFILEFORMAT2	+= strtok(NULL, ".");
-
-//		cout << LOADFILENAME.c_str() << "\t" << LOADFILEFORMAT1.c_str() << " " << endl;
-//		cout << LOADFILENAME2.c_str() << "\t" << LOADFILEFORMAT2.c_str()<< " " << endl;
 	}
 	else if( argc == 4)
 	{

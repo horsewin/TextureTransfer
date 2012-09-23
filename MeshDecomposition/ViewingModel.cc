@@ -194,7 +194,19 @@ namespace TextureTransfer
 			//TODO 冗長な処理をしているので簡単化
 			if(mMesh.size() > 1)
 			{
-				mLSCM->mMesh->VertexSynthesis();
+				vector<int> replaceIndex = mLSCM->mMesh->VertexSynthesis();
+				if(replaceIndex.size())
+				{
+					int lscmIdx = 0;
+					REP(loopMesh,mMesh.size())
+					{
+						REP(loopVer, mMesh[loopMesh]->mVertices.size())
+						{
+							mMesh[loopMesh]->mVertices[loopVer].allIndex = replaceIndex.at(lscmIdx);
+							lscmIdx++;
+						}
+					}
+				}
 //				const char * saveFile = "Model3DS/object3.obj";
 //				mLSCM->mMesh->Save(saveFile);
 //				LoadObjModel(saveFile);
@@ -210,16 +222,17 @@ namespace TextureTransfer
 			return;
 		}
 
-		REP(id,mMesh.size())
-		{
-			//indexは0からはじまるので頂点数は+1される
-			mSumOfVertices += mMesh[id]->mVertices.size();
-		}
+//		REP(id,mMesh.size())
+//		{
+//			//indexは0からはじまるので頂点数は+1される
+//			mSumOfVertices += mMesh[id]->mVertices.size();
+//		}
+
+		mSumOfVertices = mLSCM->mMesh->mVertices.size();
+
+		LoadMatrixFromObj();
 
 		cout << "Mesh(" << mMesh.size() << ") SUM OF VERTICES:" << mSumOfVertices << endl;
-
-		mIsLoadMatrix = LoadMatrixFromObj();
-
 	}
 
 	void ViewingModel::Load3DSModel(void)
@@ -229,11 +242,13 @@ namespace TextureTransfer
 
 		//モデル読み込み
 		m_model = lib3ds_file_open(mModelname.c_str());
-		if (m_model == NULL) {
-			std::cerr << "can't Open file\n";
-			exit(0);
+		if (m_model == NULL)
+		{
+			cerr << "can't Open file : " << mModelname.c_str() << endl;
+			exit(EXIT_FAILURE);
 		}
 
+		printf("The number of materials = %d\n", m_model->nmaterials);
 		mTexture = LoadTextures(m_model);
 		if(mTexture.size())
 		{
@@ -678,24 +693,27 @@ namespace TextureTransfer
 		string dirPath(mModelname), tmpPath;
 		tmpPath = strrchr(dirPath.c_str(),'/');
 		dirPath.resize(dirPath.size() - tmpPath.size());
-//		cout << "Path name = " << dirPath.c_str() << endl;
 
 		// Load a set of textures
-//		cout << "Materials=" << pModel->nmaterials << endl;
-		for (int ii = 0; ii < pModel->nmaterials; ++ii)
+		REP(material, pModel->nmaterials)
 		{
 			// Acquire a texture name
-			string sTexFile = pModel->materials[ii]->texture1_map.name;
+			string sTexFile = pModel->materials[material]->texture1_map.name;
 
-			if (!sTexFile.empty()) {
+			if (!sTexFile.empty())
+			{
 				string textureFilename = dirPath + "/" + sTexFile;
+
 				const char * sp = strrchr(sTexFile.c_str(), '.');
-				if (strcmp(sp, ".gif") == 0 || strcmp(sp, ".GIF") == 0) {
+				if (strcmp(sp, ".gif") == 0 || strcmp(sp, ".GIF") == 0)
+				{
 					cerr << "cvLoadImage does not support GIF format! -> "
 							<< textureFilename.c_str() << endl;
 					continue;
 				}
+
 				cout << "Load : " << textureFilename.c_str() << endl;
+
 				// Create a texture object and set it to the list
 				::ImageType TextureRGB = (img_load(textureFilename));
 				Texture* tmpTexture = new Texture(
@@ -703,10 +721,12 @@ namespace TextureTransfer
 				texList.push_back(tmpTexture);
 			}
 		}
+
 		return (texList);
 	}
 
-	bool ViewingModel::LoadMatrixFrom3ds(void) {
+	bool ViewingModel::LoadMatrixFrom3ds(void)
+	{
 		char load_file_name[100];
 		sprintf(load_file_name, "%s.txt", mModelname.c_str());
 
@@ -828,11 +848,8 @@ namespace TextureTransfer
 
 	// refer to paper equation(2)
 	// "Mesh Decomposition with Cross-Boundary Brushes"
-	void ViewingModel::UpdateMatrix() {
-		if (!mIsLoadMatrix) {
-			cerr << "No loaded matrix has found!" << endl;
-			return;
-		}
+	void ViewingModel::UpdateMatrix()
+	{
 		ublas::matrix<int> mat_b(mSumOfVertices + 2 * mSumOfStrokes, 1);
 		ublas::matrix<int> mat_wp(2 * mSumOfStrokes, mSumOfVertices);
 
@@ -933,6 +950,14 @@ namespace TextureTransfer
 //		t.second = mLSCM->mMesh->mTextureCoords[index];
 //		mSelectedMesh.second.mTextureCoords.push_back(t);
 		mSelectedMesh.second.AddVertex2Facet(loopFace);
+
+	}
+
+	/*
+	 * メッシュ全体における頂点インデックスのリセット
+	 */
+	void ViewingModel::ResetAllIndices()
+	{
 
 	}
 
@@ -1092,32 +1117,26 @@ namespace TextureTransfer
 	/*
 	 * @separateNumber : separate model into the number of mesh parts
 	 */
-	void ViewingModel::RenewMeshDataConstruct(const int & separateNumber)
+	void ViewingModel::RenewMeshDataConstruct()
 	{
-		//for dynamic LSCM
-		//	REP(nMeshes, mLSCM.size()){
-		//
-		//	}
-		REP(loopMesh,GetMeshSize())
+		REP(loopMesh,mMesh.size())
 		{
-			REP(loopFace,GetMeshFacesSize(loopMesh))
+//			REP(loopFace,GetMeshFacesSize(loopMesh))
+			REP(loopFace, mMesh[loopMesh]->mFaces.size())
 			{
-				REP(loopVer, GetMeshInnerFacesSize(loopMesh, loopFace))
+//				REP(loopVer, GetMeshInnerFacesSize(loopMesh, loopFace))
+				REP(loopVer, mMesh[loopMesh]->mFaces[loopFace].size())
 				{
-					int verIdx = mMesh[loopMesh]->mFaces[loopFace].at(loopVer);
-					double decomValue = static_cast<double>(mHarmonicValue[mMesh[loopMesh]->mVertices[verIdx].allIndex]);
-
-					mLSCM->mMesh->mVertices[mMesh[loopMesh]->mVertices[verIdx].allIndex].harmonicValue = decomValue;
+					const int verIdx = mMesh[loopMesh]->mFaces[loopFace].at(loopVer);
+					const double decomValue = static_cast<double>(mHarmonicValue[mMesh[loopMesh]->mVertices[verIdx].allIndex]);
+					const int allIdx = mMesh[loopMesh]->mVertices[verIdx].allIndex;
+					mLSCM->mMesh->mVertices[allIdx].harmonicValue = decomValue; //!!BUG!! 2012.9.22 2:33
 					mMesh[loopMesh]->mVertices[verIdx].harmonicValue = decomValue;
 				}
 			}
 		}
 	}
 
-	/*
-	 * 複数のメッシュ集合を1つにする
-	 * TODO mesh synthesis
-	 */
 	void ViewingModel::ConvertDataStructure()
 	{
 #if FILE_WRITE == 1
@@ -1300,12 +1319,6 @@ namespace TextureTransfer
 
 
 	// *********** The end of Query method for rendering the model *********** //
-
-	int ViewingModel::GetMeshSize() const
-	{
-		return (static_cast<int>(mMesh.size()));
-	}
-
 	int ViewingModel::GetMeshFacesSize(const int & outer_loop) const
 	{
 		if (static_cast<int>(mMesh.size()) <= outer_loop) {
@@ -1315,31 +1328,37 @@ namespace TextureTransfer
 		return (mMesh[outer_loop]->mFaces.size());
 	}
 
-	void ViewingModel::IncrementSumOfStrokes() {
+	int ViewingModel::GetMeshInnerFacesSize(const int & outer_loop, const int & inner_loop) const
+	{
+		if (static_cast<int>(mMesh.size()) <= outer_loop) {
+			cerr << "Error(GetMeshInnerFacesSize): out of range of mesh array" << endl;
+			return 1;
+		}
+		if (static_cast<int>(mMesh[outer_loop]->mFaces.size()) <= inner_loop)
+		{
+			cerr << "Error(GetMeshInnerFacesSize): out of range of mFace array" << endl;
+			return 1;
+		}
+		return mMesh[outer_loop]->mFaces[inner_loop].size();
+	}
+
+	void ViewingModel::IncrementSumOfStrokes()
+	{
 		this->mSumOfStrokes++;
 	}
 
-	/*
-	 *
-	 */
-	bool ViewingModel::RunLSCM(void) {
-		if (!mIsConvert) {
-			cerr << "Not converted yet! " << endl;
-			return false;
-		}
-
-		return true;
-	}
-
-	bool ViewingModel::LoadTexture(const char * filename)
+	void ViewingModel::LoadTexture(const char * filename)
 	{
+		if(mHasTexture) return;
+
 		::ImageType TextureRGB = (img_load(filename));
 		Texture * tmpTexture = new Texture(
 				static_cast<const ::ImageType>(TextureRGB), filename);
 
 		mTexture.push_back(tmpTexture);
 
-		return true;
+		//new texture is assigned to this model
+		mNewTexture = true;
 	}
 
 	/*
@@ -1347,7 +1366,7 @@ namespace TextureTransfer
 	 */
 	ViewingModel::ViewingModel(const char * name)
 	: mScales(5.0), mModelname(name), mSumOfVertices(0), mSumOfStrokes(0),
-	  mIsConvert(false), mIsLoadMatrix(false), mHasTexture(false), mMeshSelected(false)
+	  mIsConvert(false), mHasTexture(false), mMeshSelected(false), mNewTexture(false)
 	{
 		REP(i,3) {
 			mTrans[i] = 0.0;
