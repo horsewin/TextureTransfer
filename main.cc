@@ -34,7 +34,7 @@ const static GLfloat lit_amb[4] = { 0.4f, 0.4f, 0.4f, 1.0 }; /* 環境光の強�
 const static GLfloat lit_dif[4] = { 1.0, 1.0, 1.0, 1.0 }; /* 拡散光の強さ */
 const static GLfloat lit_spc[4] = { 0.4f, 0.4f, 0.4f, 1.0 }; /* 鏡面反射光の強さ */
 const static GLfloat lit_pos[4] = { 0.0, 0.0, -9.0, 1.0 }; /* 光源の位置 */
-std::string LOADFILENAME("keyboard");
+std::string LOADFILENAME("cube");
 std::string LOADFILENAME2("cow");
 std::string LOADFILEFORMAT1(".3ds");
 std::string LOADFILEFORMAT2(".3ds");

@@ -27,7 +27,6 @@
 #include <iostream>
 #include <fstream>
 #include <cstdio>
-#include <cstring>
 
 //---------------------------------------------------------------------------
 // Constant/Define
@@ -35,7 +34,7 @@
 const int weight = 1000;
 
 #define OVERLAID 1
-#define FILE_WRITE 1
+#define FILE_WRITE 0
 
 //#define DEBUG_TEXTURE_COORD
 //---------------------------------------------------------------------------
@@ -248,7 +247,6 @@ namespace TextureTransfer
 			exit(EXIT_FAILURE);
 		}
 
-		printf("The number of materials = %d\n", m_model->nmaterials);
 		mTexture = LoadTextures(m_model);
 		if(mTexture.size())
 		{
@@ -259,7 +257,6 @@ namespace TextureTransfer
 		REP(i,m_model->nmeshes)
 		{
 			mMesh.push_back( boost::shared_ptr<IndexedMesh>(new IndexedMesh()) );
-//			cout << "Mesh(" << i << ") -> " << m_model->meshes[i]->nvertices << " , " << m_model->meshes[i]->nfaces << endl;
 		}
 
 		REP(mats,m_model->nmaterials)
@@ -275,7 +272,9 @@ namespace TextureTransfer
 	//		mMesh[0].diffuse.push_back(tmpDiffuse);
 	//		mMesh[0].specular.push_back(tmpSpecular);
 		}
+
 		int nface = 0;
+		mGravityVector = Vector3(0.0, 0.0, 0.0);
 		REP(loop,m_model->nmeshes)
 		{
 			mesh = m_model->meshes[loop]; //mLoop番目のメッシュへのポインタ
@@ -290,7 +289,6 @@ namespace TextureTransfer
 			float (*normal)[3] = new float[mesh->nfaces][3];
 			lib3ds_mesh_calculate_face_normals(mesh, &normal[0]); //面法線の取り出し
 
-	//		mMesh[loop]->mVertices.resize(mesh->nvertices); //vertex用メモリ確保
 			mMesh[loop]->mNumIndex = mesh->nvertices;
 
 			//頂点データと法線データをインデックスに合わせて格納
@@ -298,6 +296,9 @@ namespace TextureTransfer
 			{
 				double scale = 1;
 				Vector3 tmp(mesh->vertices[loopVer][0]/scale, mesh->vertices[loopVer][1]/scale, mesh->vertices[loopVer][2]/scale);
+
+				//recalculate the boundary of this object
+				mBoundingBox.BoundaryCheck(tmp);
 
 				//for Yasuhara's cube
 //				double scale = 0.1;
@@ -307,8 +308,6 @@ namespace TextureTransfer
 //				double scale = 0.1;
 //				Vector3 tmp(mesh->vertices[loopVer][0]/scale+0.797, mesh->vertices[loopVer][1]/scale+0.923, mesh->vertices[loopVer][2]/scale-0.191);
 
-//				tmp = mesh->vertices[loopVer];
-//				printf("%f,%f,%f\n",mesh->vertices[loopVer][0], mesh->vertices[loopVer][1], mesh->vertices[loopVer][2]);
 				if(mesh->texcos && mesh->texcos[loopVer])
 				{
 					mMesh[loop]->AddVertex(tmp, Vector2(mesh->texcos[loopVer][0],mesh->texcos[loopVer][1]));
@@ -324,16 +323,17 @@ namespace TextureTransfer
 			{
 				mMesh[loop]->BeginFacet();
 				//reserve vertex information
+				Vector3 tmpGravityVector(0,0,0);
 				REP(loopVer,3)
 				{
 					mMesh[loop]->AddVertex2Facet(mesh->faces[loopFace].index[loopVer]);
 					mMesh[loop]->mVertices[mesh->faces[loopFace].index[loopVer]].normal = normal[loopFace];
-
-
+					tmpGravityVector += mMesh[loop]->mVertices[mesh->faces[loopFace].index[loopVer]].point;
 				}
 				mMesh[loop]->EndFacet();
 
-	//			mMesh[loop].materials.push_back(mesh->faces[loopFace].material);
+				tmpGravityVector /= 3;
+				mGravityVector += tmpGravityVector;
 
 				// 現在のメッシュの3頂点に対してインデックスの設定
 				REP(loopVer,3)
@@ -345,25 +345,31 @@ namespace TextureTransfer
 					{
 						mMesh[loop]->mVertices[mesh->faces[loopFace].index[loopVer]].allIndex += mMesh[i]->mVertices.size();
 					}
-					//
-					// mesh->faces[loopX].index[idmesh] <- 頂点のインデックス値
-					//
 					mMesh[loop]->mVertices[mesh->faces[loopFace].index[loopVer]].allIndex +=
 							mesh->faces[loopFace].index[loopVer];
-					//				mMesh[loop].ind[loopX*3+idmesh] += (loopX*3 + idmesh);
-					//			mMesh[loop]->ind_max = loopX*3+idmesh;
 				}
 			}
-
-			//    m_mesh[loop]->nIndex = mesh->nfaces * 3;
-			//    m_mesh[loop].index.resize( m_mesh[loop]->nIndex );//面の数*3頂点分=総インデックス数
-
 			delete[] normal;
 		}
-//		cout << "The number of mesh is " << nface << endl;
+
+		//calculate the gravity and the bounding box of this model
+		mGravityVector /= static_cast<double>(nface);
+		mBoundingBox.CalcScale();
 
 		//release the pointer having 3DS information
 		lib3ds_file_free(m_model);
+
+		//recalculate a position of each vertex based on the gravity vector and bounding box
+		REP(loopMesh, mMesh.size())
+		{
+			REP(loopVer, mMesh.at(loopMesh)->mVertices.size())
+			{
+				mMesh[loopMesh]->mVertices[loopVer].point -= mGravityVector;
+				mMesh[loopMesh]->mVertices[loopVer].point *= mBoundingBox.mScale;
+			}
+		}
+
+		printf("Gravity(%lf,%lf,%lf)\n", mGravityVector.x, mGravityVector.y, mGravityVector.z);
 
 #if FILE_WRITE == 1
 		  std::ofstream out("debug_3ds.txt") ;
@@ -725,6 +731,11 @@ namespace TextureTransfer
 		return (texList);
 	}
 
+	void ViewingModel::AdjustmentSizeAndPosition()
+	{
+
+	}
+
 	bool ViewingModel::LoadMatrixFrom3ds(void)
 	{
 		char load_file_name[100];
@@ -953,14 +964,6 @@ namespace TextureTransfer
 
 	}
 
-	/*
-	 * メッシュ全体における頂点インデックスのリセット
-	 */
-	void ViewingModel::ResetAllIndices()
-	{
-
-	}
-
 	void ViewingModel::CorrespondTexCoord(GLint *viewport, GLdouble *modelview,
 												GLdouble *projection, cv::Point3d pStart, cv::Point3d pEnd,
 												Vector2 & t1, Vector2 & t2, Vector3 & p1, Vector3 & p2, bool glMouse)
@@ -971,9 +974,8 @@ namespace TextureTransfer
 		double minStartDist = 999999;
 		double minEndDist = 999999;
 
-		IndexedMesh * im = mLSCM->mMesh.get();
+		IndexedMesh * lscmMesh = mLSCM->mMesh.get();
 
-		//	REP(mesh,mMesh.size()){
 		cv::Point3d meshVertex;
 		double dist;
 
@@ -983,11 +985,11 @@ namespace TextureTransfer
 
 		if(glMouse)
 		{
-			for (unsigned int loopVer = 0; loopVer < im->mVertices.size(); loopVer++)
+			for (unsigned int loopVer = 0; loopVer < lscmMesh->mVertices.size(); loopVer++)
 			{
-				meshVertex.x = im->mVertices[loopVer].point.x;
-				meshVertex.y = im->mVertices[loopVer].point.y;
-				meshVertex.z = im->mVertices[loopVer].point.z;
+				meshVertex.x = lscmMesh->mVertices[loopVer].point.x;
+				meshVertex.y = lscmMesh->mVertices[loopVer].point.y;
+				meshVertex.z = lscmMesh->mVertices[loopVer].point.z;
 				objX = meshVertex.x;
 				objY = meshVertex.y;
 				objZ = meshVertex.z;
@@ -1007,12 +1009,12 @@ namespace TextureTransfer
 				if (minStartDist > dist)
 				{
 					minStartDist = dist;
-					t1.x = im->mVertices[loopVer].tex_coord.x;
-					t1.y = im->mVertices[loopVer].tex_coord.y;
+					t1.x = lscmMesh->mVertices[loopVer].tex_coord.x;
+					t1.y = lscmMesh->mVertices[loopVer].tex_coord.y;
 					p1.x = objX;
 					p1.y = objY;
 					p1.z = objZ;
-					ind1 = im->mVertices[loopVer].id;
+					ind1 = lscmMesh->mVertices[loopVer].id;
 
 					//始点を選択したメッシュとする
 					mSelectedMesh.first = ind1;
@@ -1022,23 +1024,23 @@ namespace TextureTransfer
 				if (minEndDist > dist)
 				{
 					minEndDist = dist;
-					t2.x = im->mVertices[loopVer].tex_coord.x;
-					t2.y = im->mVertices[loopVer].tex_coord.y;
+					t2.x = lscmMesh->mVertices[loopVer].tex_coord.x;
+					t2.y = lscmMesh->mVertices[loopVer].tex_coord.y;
 					p2.x = objX;
 					p2.y = objY;
 					p2.z = objZ;
-					ind2 = im->mVertices[loopVer].id;
+					ind2 = lscmMesh->mVertices[loopVer].id;
 				}
 			}
 		}
 		//for direct input from a file
 		else
 		{
-			for (unsigned int loopVer = 0; loopVer < im->mVertices.size(); loopVer++)
+			for (unsigned int loopVer = 0; loopVer < lscmMesh->mVertices.size(); loopVer++)
 			{
-				meshVertex.x = im->mVertices[loopVer].point.x;
-				meshVertex.y = im->mVertices[loopVer].point.y;
-				meshVertex.z = im->mVertices[loopVer].point.z;
+				meshVertex.x = lscmMesh->mVertices[loopVer].point.x;
+				meshVertex.y = lscmMesh->mVertices[loopVer].point.y;
+				meshVertex.z = lscmMesh->mVertices[loopVer].point.z;
 
 
 
@@ -1051,12 +1053,12 @@ namespace TextureTransfer
 				if (minStartDist > dist)
 				{
 					minStartDist = dist;
-					t1.x = im->mVertices[loopVer].tex_coord.x;
-					t1.y = im->mVertices[loopVer].tex_coord.y;
+					t1.x = lscmMesh->mVertices[loopVer].tex_coord.x;
+					t1.y = lscmMesh->mVertices[loopVer].tex_coord.y;
 					p1.x = pStart.x;
 					p1.y = pStart.y;
 					p1.z = pStart.z;
-					ind1 = im->mVertices[loopVer].id;
+					ind1 = lscmMesh->mVertices[loopVer].id;
 
 					//始点を選択したメッシュとする
 					mSelectedMesh.first = ind1;
@@ -1072,7 +1074,7 @@ namespace TextureTransfer
 		{
 			//		cout << "harmonic value=" << mLSCM->mesh_->mTexParts[ mSelectedMesh.first ] << endl;
 			bool hVal = mLSCM->mMesh->mVertices[mSelectedMesh.first].harmonicValue >= 0.5 ? true : false;
-			REP(loopVer,im->mVertices.size())
+			REP(loopVer,lscmMesh->mVertices.size())
 			{
 				SetSelectedMeshData(loopVer);
 			}
@@ -1368,7 +1370,8 @@ namespace TextureTransfer
 	 */
 	ViewingModel::ViewingModel(const char * name)
 	: mScales(5.0), mModelname(name), mSumOfVertices(0), mSumOfStrokes(0),
-	  mIsConvert(false), mHasTexture(false), mMeshSelected(false), mNewTexture(false)
+	  mIsConvert(false), mHasTexture(false), mMeshSelected(false), mNewTexture(false),
+	  mGravityVector(0,0,0)
 	{
 		REP(i,3) {
 			mTrans[i] = 0.0;
@@ -1387,6 +1390,7 @@ namespace TextureTransfer
 	/*
 	 *
 	 */
-	ViewingModel::~ViewingModel() {
+	ViewingModel::~ViewingModel()
+	{
 	}
 }

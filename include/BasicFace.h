@@ -9,6 +9,7 @@
 #include <cmath>
 #include <vector>
 #include <cfloat>
+#include <iostream>
 
 //-------------------------------------------------------------------
 // Class definition
@@ -55,6 +56,34 @@ namespace TextureTransfer
 			) ;
 		}
 
+		Vector3 & operator/=(double scale){
+			x /= scale;
+			y /= scale;
+			z /= scale;
+			return *this;
+		}
+
+		Vector3 & operator*=(double scale){
+			x *= scale;
+			y *= scale;
+			z *= scale;
+			return *this;
+		}
+
+		Vector3 & operator+=(const Vector3 & v1){
+			x += v1.x;
+			y += v1.y;
+			z += v1.z;
+			return *this;
+		}
+
+		Vector3 & operator-=(const Vector3 & v1){
+			x -= v1.x;
+			y -= v1.y;
+			z -= v1.z;
+			return *this;
+		}
+
 		bool operator==(const Vector3 & v1)
 		{
 			if( fabs(v1.x - this->x) < epsilon
@@ -64,6 +93,7 @@ namespace TextureTransfer
 			else
 				return false;
 		}
+
 
 		double x ;
 		double y ;
