@@ -104,7 +104,7 @@ namespace TextureTransfer
 		};
 
 	public:
-		ViewingModel(const char * name = NULL);
+		ViewingModel(const char * name = NULL, const char * fullpath = NULL);
 		~ViewingModel();
 
 		void Save3DModel(const char * filename);
@@ -133,6 +133,7 @@ namespace TextureTransfer
 		bool IsMeshSelected() const { return mMeshSelected; }
 		void SetMeshSelected(bool meshSelected) { mMeshSelected = meshSelected; }
 
+		void WritebackTo3ds();
 	private:
 		/* Load Functions */
 		void Load3DModel();
@@ -164,6 +165,7 @@ namespace TextureTransfer
 	private:
 
 		std::string mModelname;
+		std::string mFullPath;
 		int mSumOfVertices; 									// the number of vertices of this model
 		int mSumOfStrokes; 									// the number of strokes added to this model
 		std::vector<int> mMinStartIndex;

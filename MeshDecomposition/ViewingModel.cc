@@ -20,6 +20,8 @@
 #include <boost/numeric/ublas/matrix.hpp>
 #include <boost/numeric/ublas/symmetric.hpp>
 #include <boost/numeric/ublas/matrix_sparse.hpp>
+#include <boost/filesystem/path.hpp>
+#include <boost/filesystem/operations.hpp>
 
 #include <cvd/image_io.h>
 
@@ -34,7 +36,8 @@
 const int weight = 1000;
 
 #define OVERLAID 1
-#define FILE_WRITE 0
+#define FILE_WRITE 0		//for debug to check the coord of each vertex
+#define SHIFT_SCALING 0	//for displaying model with shifting and scaling depending on the gravity and size
 
 //#define DEBUG_TEXTURE_COORD
 //---------------------------------------------------------------------------
@@ -180,7 +183,7 @@ namespace TextureTransfer
 	void ViewingModel::Load3DModel()
 	{
 		//check whether .3ds, .obj or others
-		const char *extension = strrchr(mModelname.c_str(), '.');
+		const char *extension = strrchr(mFullPath.c_str(), '.');
 
 		if (!strcmp(extension, ".3ds") || !strcmp(extension, ".3DS"))
 		{
@@ -189,11 +192,14 @@ namespace TextureTransfer
 			//convert to OBJ file format
 			ConvertDataStructure();
 
-			//重複頂点削除ー＞ファイルに書き戻すー＞書き戻した内容を読み直す
+			//重複頂点削除ー＞ファイルに書き戻すー＞書き戻した内容を読み直す 2012.8.?
 			//TODO 冗長な処理をしているので簡単化
 			if(mMesh.size() > 1)
 			{
+				//
 				vector<int> replaceIndex = mLSCM->mMesh->VertexSynthesis();
+
+				//スワップインデックスの更新
 				if(replaceIndex.size())
 				{
 					int lscmIdx = 0;
@@ -240,10 +246,10 @@ namespace TextureTransfer
 		::Lib3dsMesh *mesh; //メッシュ単位
 
 		//モデル読み込み
-		m_model = lib3ds_file_open(mModelname.c_str());
+		m_model = lib3ds_file_open(mFullPath.c_str());
 		if (m_model == NULL)
 		{
-			cerr << "can't Open file : " << mModelname.c_str() << endl;
+			cerr << "can't Open file : " << mFullPath.c_str() << endl;
 			exit(EXIT_FAILURE);
 		}
 
@@ -274,7 +280,9 @@ namespace TextureTransfer
 		}
 
 		int nface = 0;
+#if SHIFT_SCALING == 1
 		mGravityVector = Vector3(0.0, 0.0, 0.0);
+#endif
 		REP(loop,m_model->nmeshes)
 		{
 			mesh = m_model->meshes[loop]; //mLoop番目のメッシュへのポインタ
@@ -297,9 +305,10 @@ namespace TextureTransfer
 				double scale = 1;
 				Vector3 tmp(mesh->vertices[loopVer][0]/scale, mesh->vertices[loopVer][1]/scale, mesh->vertices[loopVer][2]/scale);
 
+#if SHIFT_SCALING == 1
 				//recalculate the boundary of this object
 				mBoundingBox.BoundaryCheck(tmp);
-
+#endif
 				//for Yasuhara's cube
 //				double scale = 0.1;
 //				Vector3 tmp(mesh->vertices[loopVer][0]/scale-0.193, mesh->vertices[loopVer][1]/scale+8.15, mesh->vertices[loopVer][2]/scale-0.113);
@@ -323,18 +332,23 @@ namespace TextureTransfer
 			{
 				mMesh[loop]->BeginFacet();
 				//reserve vertex information
+#if SHIFT_SCALING == 1
 				Vector3 tmpGravityVector(0,0,0);
+#endif
 				REP(loopVer,3)
 				{
 					mMesh[loop]->AddVertex2Facet(mesh->faces[loopFace].index[loopVer]);
 					mMesh[loop]->mVertices[mesh->faces[loopFace].index[loopVer]].normal = normal[loopFace];
+#if SHIFT_SCALING == 1
 					tmpGravityVector += mMesh[loop]->mVertices[mesh->faces[loopFace].index[loopVer]].point;
+#endif
 				}
 				mMesh[loop]->EndFacet();
 
+#if SHIFT_SCALING == 1
 				tmpGravityVector /= 3;
 				mGravityVector += tmpGravityVector;
-
+#endif
 				// 現在のメッシュの3頂点に対してインデックスの設定
 				REP(loopVer,3)
 				{
@@ -352,12 +366,10 @@ namespace TextureTransfer
 			delete[] normal;
 		}
 
+#if SHIFT_SCALING == 1
 		//calculate the gravity and the bounding box of this model
 		mGravityVector /= static_cast<double>(nface);
 		mBoundingBox.CalcScale();
-
-		//release the pointer having 3DS information
-		lib3ds_file_free(m_model);
 
 		//recalculate a position of each vertex based on the gravity vector and bounding box
 		REP(loopMesh, mMesh.size())
@@ -370,8 +382,11 @@ namespace TextureTransfer
 		}
 
 		printf("Gravity(%lf,%lf,%lf)\n", mGravityVector.x, mGravityVector.y, mGravityVector.z);
-
+#endif
+		//release the pointer having 3DS information
+		lib3ds_file_free(m_model);
 #if FILE_WRITE == 1
+
 		  std::ofstream out("debug_3ds.txt") ;
 		  REP(verIdx,mMesh[0]->mVertices.size()){
 			  out << "v "
@@ -390,9 +405,9 @@ namespace TextureTransfer
 		{
 			input.open(modelName);
 		}
-		else if( !mModelname.empty() )
+		else if( !mFullPath.empty() )
 		{
-			input.open(mModelname.c_str());
+			input.open(mFullPath.c_str());
 		}
 		else
 		{
@@ -427,7 +442,8 @@ namespace TextureTransfer
 
 				tmpMesh->AddVertex(p, Vector2(0, 0));
 				mMesh[0]->AddVertex(p, Vector2(0, 0));
-				tmpMesh->mVertices[tmpMesh->mVertices.size()-1].textureNumber = 0;
+//				tmpMesh->mVertices[tmpMesh->mVertices.size()-1].textureNumber = 0;
+				tmpMesh->mVertices[tmpMesh->mVertices.size()-1].textureNumberArray.push_back(0);
 
 			}
 			//in the case of texture coord information
@@ -559,41 +575,76 @@ namespace TextureTransfer
 			//texNumber番目に属する頂点情報のみとりだす
 			REP(verIdx, lscmMesh->mVertices.size())
 			{
-				if(lscmMesh->mVertices[verIdx].textureNumber == texNumber)
+				// ここが問題になっている。境界線頂点は2つ以上のテクスチャ番号をもつことがあるため
+				//	それに対応するように書き直す必要あり(2012.10.19)
+//				if(lscmMesh->mVertices[verIdx].textureNumber == texNumber)
+//				{
+//					//push to the array for calculation
+//					vertices.push_back(lscmMesh->mVertices[verIdx]);
+//					//reserve index info corresponding to the index before calculation
+//					indexVertex[verIdx] = vertices.size() - 1;
+//				}
+				//revised-version to solve above problem
+				REP(texID, lscmMesh->mVertices[verIdx].textureNumberArray.size())
 				{
-					//push to the array for calculation
-					vertices.push_back(lscmMesh->mVertices[verIdx]);
-					//reserve index info corresponding to the index before calculation
-					indexVertex[verIdx] = vertices.size() - 1;
+					if(lscmMesh->mVertices[verIdx].textureNumberArray.at(texID) == texNumber)
+					{
+						//push to the array for calculation
+						vertices.push_back(lscmMesh->mVertices[verIdx]);
+						//reserve index info corresponding to the index before calculation
+						indexVertex[verIdx] = vertices.size() - 1;
+						break;
+					}
+
 				}
 			}
 
 			//メッシュに属する頂点数を数えてインデックスを割り振る
-			REP(faceIdx, lscmMesh->mFaces.size() )
+			REP(loopFace, lscmMesh->mFaces.size() )
 			{
-				//すべての面が選択領域の条件を満たしているかCHECK
-				bool compose = true;
-				REP(verIdx, lscmMesh->mFaces[faceIdx].size())
+				//ある点が選択領域の条件を満たしているかCHECK
+				bool compose = false;
+				REP(loopVer, lscmMesh->mFaces[loopFace].size())
 				{
-					int index = lscmMesh->mFaces[faceIdx].at(verIdx);
-					if(lscmMesh->mVertices[index].textureNumber != texNumber)
+					int verIndex = lscmMesh->mFaces[loopFace].at(loopVer);
+
+					//revised-version to solve above problem
+					//今回は面情報の保存であるためテクスチャ番号配列の先頭のみの参照でよい
+					//かつ、すでに参照されている面ではないこと
+					if(lscmMesh->mVertices[verIndex].textureNumberArray.at(0) == texNumber)
+//					if(lscmMesh->mVertices[verIndex].textureNumber == texNumber)
 					{
-						compose = false;
+						compose = true;
 						break;
 					}
 
 				}
 
+				//this face was already restored?
+				if(compose)
+				{
+					REP(loopVer, lscmMesh->mFaces[loopFace].size())
+					{
+						int verIndex = lscmMesh->mFaces[loopFace].at(loopVer);
+						if(lscmMesh->mVertices[verIndex].textureNumberArray.at(0) < texNumber)
+						{
+							compose = false;	//texNumber番目より前のテクスチャメッシュで参照された
+							break;
+						}
+					}
+				}
+
 				//if above condition is satisfied
+				//2012.10.22 境界線を考慮した保存において、頂点数の整合性はとれたー＞面の数がおかしい
 				if(compose)
 				{
 					Facet face;
 
 					//reserve face information that should be written into 3DS file
-					REP(verIdx, lscmMesh->mFaces[faceIdx].size())
+					REP(verIdx, lscmMesh->mFaces[loopFace].size())
 					{
-						face.push_back(indexVertex[ lscmMesh->mFaces[faceIdx].at(verIdx)]);
-						indices.push_back(indexVertex[ lscmMesh->mFaces[faceIdx].at(verIdx)]);
+						face.push_back(indexVertex[ lscmMesh->mFaces[loopFace].at(verIdx)]);
+						indices.push_back(indexVertex[ lscmMesh->mFaces[loopFace].at(verIdx)]);
 					}
 					faces.push_back(face);
 				}
@@ -674,7 +725,23 @@ namespace TextureTransfer
 
 		//copy all new materials to ARMM dir
 		ostringstream com;
-		com << "mkdir " << ConstParams::DATABASEDIR << filename << " && ";
+		com << ConstParams::DATABASEDIR << filename;
+
+		boost::filesystem::path dir(com.str().c_str());
+		if (boost::filesystem::create_directory(dir))
+		{
+			cout << "SUCCEEDED:" << com.str().c_str() << endl;
+		}
+		else
+		{
+			com.str(""); //clear() is not a fuction to init
+			com << "rm -rf " << ConstParams::DATABASEDIR << filename << " && ";
+			com << "mkdir " << ConstParams::DATABASEDIR << filename;
+			if(system(com.str().c_str())){};
+			cout << "Exec: " << com.str().c_str() << endl;
+		}
+		com.str("");
+
 		com << "cp " << saveName.str().c_str() << " ";
 		REP(m,sModel->nmaterials)
 		{
@@ -696,7 +763,7 @@ namespace TextureTransfer
 		deque<Texture *> texList;
 
 		//create dirpath of the loaded model
-		string dirPath(mModelname), tmpPath;
+		string dirPath(mFullPath), tmpPath;
 		tmpPath = strrchr(dirPath.c_str(),'/');
 		dirPath.resize(dirPath.size() - tmpPath.size());
 
@@ -739,7 +806,7 @@ namespace TextureTransfer
 	bool ViewingModel::LoadMatrixFrom3ds(void)
 	{
 		char load_file_name[100];
-		sprintf(load_file_name, "%s.txt", mModelname.c_str());
+		sprintf(load_file_name, "%s.txt", mFullPath.c_str());
 
 		// Create frequency matrix
 		// Create adjacent matrix
@@ -800,7 +867,7 @@ namespace TextureTransfer
 	bool ViewingModel::LoadMatrixFromObj(void)
 	{
 		char load_file_name[100];
-		sprintf(load_file_name, "%s.txt", mModelname.c_str());
+		sprintf(load_file_name, "%s.txt", mFullPath.c_str());
 
 		// Create frequency matrix
 		// Create adjacent matrix
@@ -1180,7 +1247,8 @@ namespace TextureTransfer
 						<< std::endl ;
 #endif
 				//init texture number information
-				mLSCM->mMesh->mVertices[verIdx].textureNumber = loopMesh;
+				mLSCM->mMesh->mVertices[verIdx].textureNumberArray.clear();
+				mLSCM->mMesh->mVertices[verIdx].textureNumberArray.push_back(loopMesh);
 //				int tmpTexID = mLSCM->mMesh->mTexnumVernum.back().mModelTexIdx;
 //				int tmpVerID = mLSCM->mMesh->mTexnumVernum.back().mModelVertexIdx;
 //				printf("(%d), TEXID=%d, \n", tmpVerID, tmpTexID);
@@ -1366,10 +1434,83 @@ namespace TextureTransfer
 	}
 
 	/*
+	 * rewrite the loaded model info to file with 3DS format
+	 * This function is used effectively to adjust the position and scale of each vertex
+	 */
+	void ViewingModel::WritebackTo3ds()
+	{
+		Lib3dsFile *lModel; //モデル全体
+		//モデル読み込み
+		lModel = lib3ds_file_open(mFullPath.c_str());
+		if (lModel == NULL)
+		{
+			cerr << "can't Open file : " << mFullPath.c_str() << endl;
+			exit(EXIT_FAILURE);
+		}
+
+		//create a new 3DS file
+		Lib3dsFile * sModel = lib3ds_file_new();
+		strcpy( sModel->name, mModelname.c_str());
+
+		//reserve the setting of materials
+		sModel->nmaterials	= mMesh.size();
+		sModel->materials		= new Lib3dsMaterial*[sModel->nmaterials];
+
+		//reserve the setting of meshes
+		sModel->nmeshes	= mMesh.size();
+		sModel->meshes	= new Lib3dsMesh*[sModel->nmeshes];
+
+		REP(nm, sModel->nmeshes)
+		{
+			string str(lModel->materials[nm]->texture1_map.name);
+			sModel->materials[nm] = lib3ds_material_new(str.c_str() );
+			strcpy( sModel->materials[nm]->texture1_map.name, str.c_str());
+
+			ostringstream meshFilename;
+			meshFilename << "mesh" << nm;
+			sModel->meshes[nm] = lib3ds_mesh_new( meshFilename.str().c_str() );
+
+			// create temporary memory for restoring data
+			sModel->meshes[nm]->nfaces		= mMesh[nm]->mFaces.size();
+			sModel->meshes[nm]->nvertices	= mMesh[nm]->mVertices.size();
+			sModel->meshes[nm]->faces		= new Lib3dsFace[sModel->meshes[nm]->nfaces];
+			sModel->meshes[nm]->vertices	= new float[sModel->meshes[nm]->nvertices][3];
+			sModel->meshes[nm]->texcos		= new float[sModel->meshes[nm]->nvertices][2];
+
+			//writeback the info of each vertex
+			REP(loopVer, mMesh[nm]->mVertices.size())
+			{
+				sModel->meshes[nm]->vertices[loopVer][0]	= mMesh[nm]->mVertices[loopVer].point.x;
+				sModel->meshes[nm]->vertices[loopVer][1]	= mMesh[nm]->mVertices[loopVer].point.y;
+				sModel->meshes[nm]->vertices[loopVer][2]	= mMesh[nm]->mVertices[loopVer].point.z;
+
+				sModel->meshes[nm]->texcos[loopVer][0]		= mMesh[nm]->mVertices[loopVer].tex_coord.x;
+				sModel->meshes[nm]->texcos[loopVer][1]		= mMesh[nm]->mVertices[loopVer].tex_coord.y;
+			}
+
+			//writeback the info of connectivity of facets
+			REP(loopFace, mMesh[nm]->mFaces.size())
+			{
+				//set the index of material corresponding to this face
+				sModel->meshes[nm]->faces[loopFace].material = nm;
+
+				//set the index of vertex corresponding to each vertex
+				REP(id,3)
+				{
+					sModel->meshes[nm]->faces[loopFace].index[id] = mMesh[nm]->mFaces[loopFace].at(id);
+				}
+			}
+		}
+		lib3ds_file_save( sModel , mFullPath.c_str());
+
+		printf("Writeback the info of model -> %s\n", mFullPath.c_str());
+	}
+
+	/*
 	 * @name : model name for loading
 	 */
-	ViewingModel::ViewingModel(const char * name)
-	: mScales(5.0), mModelname(name), mSumOfVertices(0), mSumOfStrokes(0),
+	ViewingModel::ViewingModel(const char * name, const char * fullpath)
+	: mScales(5.0), mModelname(name), mFullPath(fullpath), mSumOfVertices(0), mSumOfStrokes(0),
 	  mIsConvert(false), mHasTexture(false), mMeshSelected(false), mNewTexture(false),
 	  mGravityVector(0,0,0)
 	{
@@ -1383,6 +1524,7 @@ namespace TextureTransfer
 
 		mLSCM = boost::shared_ptr<LSCM>(new LSCM());
 		mSelectedFace.clear();
+
 		//for mesh decomposition
 		Load3DModel();
 	}

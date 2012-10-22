@@ -176,8 +176,6 @@ namespace TextureTransfer
 
 		uint current_id = 0;
 
-		int dup = 0;
-
 		std::vector<Vertex> newVertices;
 
 		REP(id_seek, mVertices.size())

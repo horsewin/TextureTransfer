@@ -121,8 +121,9 @@ namespace TextureTransfer
 		int     id ;
 		int		 allIndex;
 		double	 harmonicValue;
-		int		 textureNumber; //to indicate corresponding texture image number
-	};
+//		int		 textureNumber; //to indicate corresponding texture image number
+		std::vector<int> textureNumberArray; //to indicate corresponding texture image number
+		};
 
 	class Facet : public std::vector<int> {
 		public:
