@@ -37,7 +37,7 @@ const int weight = 1000;
 
 #define OVERLAID 1
 #define FILE_WRITE 0		//for debug to check the coord of each vertex
-#define SHIFT_SCALING 0	//for displaying model with shifting and scaling depending on the gravity and size
+#define SHIFT_SCALING 1	//for displaying model with shifting and scaling depending on the gravity and size
 
 //#define DEBUG_TEXTURE_COORD
 //---------------------------------------------------------------------------
@@ -193,7 +193,7 @@ namespace TextureTransfer
 			ConvertDataStructure();
 
 			//重複頂点削除ー＞ファイルに書き戻すー＞書き戻した内容を読み直す 2012.8.?
-			//TODO 冗長な処理をしているので簡単化
+			//DONE 冗長な処理をしているので簡単化
 			if(mMesh.size() > 1)
 			{
 				//
@@ -212,9 +212,6 @@ namespace TextureTransfer
 						}
 					}
 				}
-//				const char * saveFile = "Model3DS/object3.obj";
-//				mLSCM->mMesh->Save(saveFile);
-//				LoadObjModel(saveFile);
 			}
 		}
 		else if (!strcmp(extension, ".obj") || !strcmp(extension, ".OBJ"))
@@ -226,12 +223,6 @@ namespace TextureTransfer
 			cerr << "Not supported modelling file format : " << extension << endl;
 			return;
 		}
-
-//		REP(id,mMesh.size())
-//		{
-//			//indexは0からはじまるので頂点数は+1される
-//			mSumOfVertices += mMesh[id]->mVertices.size();
-//		}
 
 		mSumOfVertices = mLSCM->mMesh->mVertices.size();
 
@@ -302,20 +293,12 @@ namespace TextureTransfer
 			//頂点データと法線データをインデックスに合わせて格納
 			for (int loopVer = 0; loopVer < mesh->nvertices; ++loopVer)
 			{
-				double scale = 1;
-				Vector3 tmp(mesh->vertices[loopVer][0]/scale, mesh->vertices[loopVer][1]/scale, mesh->vertices[loopVer][2]/scale);
+				Vector3 tmp(mesh->vertices[loopVer][0], mesh->vertices[loopVer][1], mesh->vertices[loopVer][2]);
 
 #if SHIFT_SCALING == 1
 				//recalculate the boundary of this object
 				mBoundingBox.BoundaryCheck(tmp);
 #endif
-				//for Yasuhara's cube
-//				double scale = 0.1;
-//				Vector3 tmp(mesh->vertices[loopVer][0]/scale-0.193, mesh->vertices[loopVer][1]/scale+8.15, mesh->vertices[loopVer][2]/scale-0.113);
-
-				//for Yasuhara's MT
-//				double scale = 0.1;
-//				Vector3 tmp(mesh->vertices[loopVer][0]/scale+0.797, mesh->vertices[loopVer][1]/scale+0.923, mesh->vertices[loopVer][2]/scale-0.191);
 
 				if(mesh->texcos && mesh->texcos[loopVer])
 				{
@@ -761,6 +744,7 @@ namespace TextureTransfer
 
 		// Creation of the texture's list
 		deque<Texture *> texList;
+		texList.clear();
 
 		//create dirpath of the loaded model
 		string dirPath(mFullPath), tmpPath;
@@ -1218,9 +1202,6 @@ namespace TextureTransfer
 			return;
 		}
 
-		//for texture deployment
-		cout << "Convert from 3DS to OBJ..." << endl;
-
 		//頂点情報の格納
 //		REP(loopMesh, mMesh.size())
 //		{
@@ -1484,8 +1465,12 @@ namespace TextureTransfer
 				sModel->meshes[nm]->vertices[loopVer][1]	= mMesh[nm]->mVertices[loopVer].point.y;
 				sModel->meshes[nm]->vertices[loopVer][2]	= mMesh[nm]->mVertices[loopVer].point.z;
 
-				sModel->meshes[nm]->texcos[loopVer][0]		= mMesh[nm]->mVertices[loopVer].tex_coord.x;
-				sModel->meshes[nm]->texcos[loopVer][1]		= mMesh[nm]->mVertices[loopVer].tex_coord.y;
+//				sModel->meshes[nm]->texcos[loopVer][0]		= mMesh[nm]->mVertices[loopVer].tex_coord.x;
+//				sModel->meshes[nm]->texcos[loopVer][1]		= mMesh[nm]->mVertices[loopVer].tex_coord.y;
+
+				//to unify the Yasuhara's reconstructed model into a readable model by osgviewer
+				sModel->meshes[nm]->texcos[loopVer][0]		= mMesh[nm]->mVertices[loopVer].tex_coord.x/640;
+				sModel->meshes[nm]->texcos[loopVer][1]		= 1 - mMesh[nm]->mVertices[loopVer].tex_coord.y/480;
 			}
 
 			//writeback the info of connectivity of facets

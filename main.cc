@@ -36,7 +36,7 @@ const static GLfloat lit_amb[4] = { 0.4f, 0.4f, 0.4f, 1.0 }; /* 環境光の強�
 const static GLfloat lit_dif[4] = { 1.0, 1.0, 1.0, 1.0 }; /* 拡散光の強さ */
 const static GLfloat lit_spc[4] = { 0.4f, 0.4f, 0.4f, 1.0 }; /* 鏡面反射光の強さ */
 const static GLfloat lit_pos[4] = { 0.0, 0.0, -9.0, 1.0 }; /* 光源の位置 */
-std::string LOADFILENAME("Torus");
+std::string LOADFILENAME("keyboard");
 std::string LOADFILENAME2("NewTorus");
 std::string LOADFILEFORMAT1(".3ds");
 std::string LOADFILEFORMAT2(".3ds");
@@ -681,7 +681,7 @@ void DrawModelWithTextures(ViewingModel*& model)
 				int corVerIdx = model->mMesh[texNumber]->mFaces[faceIdx].at(loopVer);
 				GLdouble corTexcos[] = {
 						model->mMesh[texNumber]->mVertices[corVerIdx].tex_coord.x,
-						model->mMesh[texNumber]->mVertices[corVerIdx].tex_coord.y };
+						1-model->mMesh[texNumber]->mVertices[corVerIdx].tex_coord.y };
 				GLdouble vertex[3];
 				vertex[0] = lscmMesh->mVertices[verIndex].point.x;
 				vertex[1] = lscmMesh->mVertices[verIndex].point.y;
@@ -970,7 +970,8 @@ void DrawAtlasWithTextures(ViewingModel*& model)
 				GLfloat corTexcos[] =
 						{
 								model->mMesh[texNumber]->mVertices[corVerIdx].tex_coord.x,
-								model->mMesh[texNumber]->mVertices[corVerIdx].tex_coord.y };
+								1 - model->mMesh[texNumber]->mVertices[corVerIdx].tex_coord.y
+						};
 
 				int verIndex = lscmMesh->mFaces[loopFace].at(loopVer);
 				{
@@ -1163,7 +1164,7 @@ void DrawTextureMonitor(int x, int y, int w, int h, ViewingModel * model,
 							int corVerIdx = model->mMesh[texNumber]->mFaces[faceIdx].at(loopVer);
 							GLfloat corTexcos[] = {
 											model->mMesh[texNumber]->mVertices[corVerIdx].tex_coord.x,
-											model->mMesh[texNumber]->mVertices[corVerIdx].tex_coord.y
+											1-model->mMesh[texNumber]->mVertices[corVerIdx].tex_coord.y
 							};
 
 							Vector2 tex_coord = model->mSelectedMesh.second.mVertices.at(
@@ -1286,8 +1287,10 @@ void PointsDisplay() {
 	cvReleaseImage(&input);
 }
 
-void TexturePaste(bool color) {
-	if (color) {
+void TexturePaste(bool color)
+{
+	if (color)
+	{
 #if FEEDBACK_VISUALIZE == 1
 		IplImage * input = cvLoadImage("mesh1.bmp", 0);
 		IplImage * src = cvCreateImage( cvGetSize(input), 8, 3);
@@ -1462,9 +1465,6 @@ int main(int argc, char *argv[])
 	}
 
 	Init();
-
-	// start to display image
 	glutMainLoop();
-
 	return 0;
 }

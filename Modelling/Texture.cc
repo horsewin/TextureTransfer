@@ -13,7 +13,7 @@
 #include <boost/serialization/vector.hpp>
 #include <boost/serialization/base_object.hpp>
 
-#define TEXTURE_RECT_ARB 1
+#define TEXTURE_RECT_ARB 0
 
 namespace{
 	inline void sendDataToTex( const TextureTransfer::Texture::Buftype * data, size_t width, size_t height ){
