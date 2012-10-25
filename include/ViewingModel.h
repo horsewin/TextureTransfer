@@ -108,6 +108,7 @@ namespace TextureTransfer
 		~ViewingModel();
 
 		void Save3DModel(const char * filename);
+		void Save3DModelRevised(const char * filename);
 
 		void LoadTexture(const char * filename);
 		bool CheckFittingVertices(GLint *viewport, GLdouble *modelview, GLdouble *projection, cv::Point3d start_point, cv::Point3d end_point, bool glMouse = true);
@@ -134,6 +135,7 @@ namespace TextureTransfer
 		void SetMeshSelected(bool meshSelected) { mMeshSelected = meshSelected; }
 
 		void WritebackTo3ds();
+
 	private:
 		/* Load Functions */
 		void Load3DModel();
@@ -148,6 +150,7 @@ namespace TextureTransfer
 		/* Set Functions */
 		void SetSelectedMeshData(const int& loopVer);
 		void SetSelectedFaces(const int& loopTex);
+	void CreateNewTextureFile(Lib3dsFile*& sModel);
 
 		public:
 		boost::shared_ptr<LSCM> mLSCM;

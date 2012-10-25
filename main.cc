@@ -36,8 +36,8 @@ const static GLfloat lit_amb[4] = { 0.4f, 0.4f, 0.4f, 1.0 }; /* 環境光の強�
 const static GLfloat lit_dif[4] = { 1.0, 1.0, 1.0, 1.0 }; /* 拡散光の強さ */
 const static GLfloat lit_spc[4] = { 0.4f, 0.4f, 0.4f, 1.0 }; /* 鏡面反射光の強さ */
 const static GLfloat lit_pos[4] = { 0.0, 0.0, -9.0, 1.0 }; /* 光源の位置 */
-std::string LOADFILENAME("keyboard");
-std::string LOADFILENAME2("NewTorus");
+std::string LOADFILENAME("cow");
+std::string LOADFILENAME2("keyboard");
 std::string LOADFILEFORMAT1(".3ds");
 std::string LOADFILEFORMAT2(".3ds");
 
@@ -48,7 +48,6 @@ namespace TextureTransfer
 
 	const char *  ConstParams::DATABASEDIR = "/home/umakatsu/Dropbox/Lab/ModelDatabase/";
 }
-
 using namespace std;
 using namespace TextureTransfer;
 
@@ -83,8 +82,8 @@ TextureTransfer::Vector3 clickPoint[2];
 
 void *font = GLUT_BITMAP_HELVETICA_18;
 std::vector<int *> point;
-
 TextureTransfer::ViewingModel * models[2];
+
 TextureTransfer::TransferController controller;
 short manipulation;
 
@@ -100,223 +99,232 @@ void keyboard(unsigned char key, int x, int y);
 //---------------------------------------------------------------------------
 // Code
 //---------------------------------------------------------------------------
-void SetObjectiveNames(char **argv, const int & first, const int & second)
+namespace
 {
-	LOADFILENAME.clear();
-	LOADFILENAME2.clear();
-	LOADFILEFORMAT1.clear();
-	LOADFILEFORMAT2.clear();
-
-	LOADFILENAME		= strtok(argv[first], ".");
-	LOADFILEFORMAT1	+= ".";
-	LOADFILEFORMAT1	+= strtok(NULL, ".");
-
-	LOADFILENAME2		= strtok(argv[second], ".");
-	LOADFILEFORMAT2	+= ".";
-	LOADFILEFORMAT2	+= strtok(NULL, ".");
-}
-
-//---------- display font image ------------//
-void DrawString(const char *str, void *font, float x, float y, float z) {
-	glRasterPos3f(x, y, z);
-	while (*str) {
-		glutBitmapCharacter(font, *str);
-		++str;
-	}
-
-}
-
-void DrawController()
-{
-	glPushAttrib(GL_CURRENT_BIT | GL_DEPTH_BUFFER_BIT); // retrieve color and Z buffer
-	glColor3d(0, 0, 0);
-	char str[50], textureStr[50];
-	switch (controllObject)
+	void SetObjectiveNames(char **argv, const int & first, const int & second)
 	{
-	case MANUPLATE:
-		sprintf(str, "[r] Mode : Manipulation");
-		break;
+		LOADFILENAME.clear();
+		LOADFILENAME2.clear();
+		LOADFILEFORMAT1.clear();
+		LOADFILEFORMAT2.clear();
 
-	case DECOMPOSITE:
-		sprintf(str, "[r] Mode : Input Stroke");
-		break;
+		LOADFILENAME		= strtok(argv[first], ".");
+		LOADFILEFORMAT1	+= ".";
+		LOADFILEFORMAT1	+= strtok(NULL, ".");
 
-	case TRANSFER:
-		sprintf(str, "[r] Mode : Texture Transfer");
-		break;
-
-	case SELECT:
-		sprintf(str, "[r] Mode : Selected texture");
-		break;
+		LOADFILENAME2		= strtok(argv[second], ".");
+		LOADFILEFORMAT2	+= ".";
+		LOADFILEFORMAT2	+= strtok(NULL, ".");
 	}
 
-	if(textureOFF)
-	{
-		sprintf(textureStr,"[p]Texture OFF");
-	}
-	else
-	{
-		sprintf(textureStr,"[p]Texture ON");
-	}
-
-	DrawString(str, font, 10, 20, 0);
-	DrawString(textureStr, font, -10, 19.5, 0);
-	glPopAttrib(); // write back color and Z buffer
-}
-
-void ColorSetting(const double & value, bool harmonic = false) {
-	// get the value calculated poisson equation
-	//  assert( value <= 1.0);
-	GLfloat R, G, B;
-	if (harmonic) {
-		if (value >= 0.75) {
-			R = 1.0;
-			G = static_cast<GLfloat>(4.0 - 4.0 * value);
-			B = 0.0;
-		} else if (value >= 0.5) {
-			R = static_cast<GLfloat>(4.0 * value - 2.0);
-			G = 1.0;
-			B = 0.0;
-		} else if (value >= 0.25) {
-			R = 0.0;
-			G = 1.0;
-			B = static_cast<GLfloat>(-4.0 * value + 2.0);
-		} else {
-			R = 0.0;
-			G = static_cast<GLfloat>(4.0 * value);
-			B = 1.0;
+	//---------- display font image ------------//
+	void DrawString(const char *str, void *font, float x, float y, float z) {
+		glRasterPos3f(x, y, z);
+		while (*str) {
+			glutBitmapCharacter(font, *str);
+			++str;
 		}
-	} else {
-		if (value >= 0.5) {
-			R = 0;
-			G = 1.0;
-			B = 1.0;
-		} else {
-			R = 1.0;
-			G = 1.0;
-			B = 0;
-		}
+
 	}
-	glColor3f(R, G, B);
-}
 
-void SetDirectVertex(cv::Point3d& start_point, std::vector<Vector3> direct_ver[2], cv::Point3d& end_point)
-{
-	start_point.x = direct_ver[manipulation - 1][0].x;
-	start_point.y = direct_ver[manipulation - 1][0].y;
-	start_point.z = direct_ver[manipulation - 1][0].z;
-	end_point.x =
-			direct_ver[manipulation - 1][direct_ver[manipulation - 1].size() - 1].x;
-	end_point.y =
-			direct_ver[manipulation - 1][direct_ver[manipulation - 1].size() - 1].y;
-	end_point.z =
-			direct_ver[manipulation - 1][direct_ver[manipulation - 1].size() - 1].z;
-}
-
-void DirectFileInput()
-{
-	if (fileInput == 1)
+	void DrawController()
 	{
-		fileInput = 2;
-		//for texture transfer in AR
-		cout << "Load -> " << filename << endl;
-		std::ifstream input(filename);
-		direct_ver[0].clear();
-		direct_ver[1].clear();
-		int number = 0;
-		while (input) //until input data continues
+		glPushAttrib(GL_CURRENT_BIT | GL_DEPTH_BUFFER_BIT); // retrieve color and Z buffer
+		glColor3d(0, 0, 0);
+		char str[50], textureStr[50];
+		switch (controllObject)
 		{
-			char line[1024];
-			input.getline(line, 1024);
-			if (!input)
-				break;
+		case MANUPLATE:
+			sprintf(str, "[r] Mode : Manipulation");
+			break;
 
-			std::stringstream line_input(line);
-			std::string keyword;
-			line_input >> keyword;
-			//in the case of vertex information
-			if (keyword == "v") {
-				Vector3 ver;
-				line_input >> ver.x >> ver.y >> ver.z;
-				//			printf("%f %f %f\n",ver.x, ver.y, ver.z);
-				direct_ver[number].push_back(ver);
-			} else if (keyword == "d") {
-				number = 1;
+		case DECOMPOSITE:
+			sprintf(str, "[r] Mode : Input Stroke");
+			break;
+
+		case TRANSFER:
+			sprintf(str, "[r] Mode : Texture Transfer");
+			break;
+
+		case SELECT:
+			sprintf(str, "[r] Mode : Selected texture");
+			break;
+		}
+
+		if(textureOFF)
+		{
+			sprintf(textureStr,"[p]Texture OFF");
+		}
+		else
+		{
+			sprintf(textureStr,"[p]Texture ON");
+		}
+
+		DrawString(str, font, 10, 20, 0);
+		DrawString(textureStr, font, -10, 19.5, 0);
+		glPopAttrib(); // write back color and Z buffer
+	}
+
+	void ColorSetting(const double & value, bool harmonic = false)
+	{
+		// get the value calculated poisson equation
+		//  assert( value <= 1.0);
+		GLfloat R, G, B;
+		if (harmonic) {
+			if (value >= 0.75) {
+				R = 1.0;
+				G = static_cast<GLfloat>(4.0 - 4.0 * value);
+				B = 0.0;
+			} else if (value >= 0.5) {
+				R = static_cast<GLfloat>(4.0 * value - 2.0);
+				G = 1.0;
+				B = 0.0;
+			} else if (value >= 0.25) {
+				R = 0.0;
+				G = 1.0;
+				B = static_cast<GLfloat>(-4.0 * value + 2.0);
+			} else {
+				R = 0.0;
+				G = static_cast<GLfloat>(4.0 * value);
+				B = 1.0;
+			}
+		} else {
+			if (value >= 0.5) {
+				R = 0;
+				G = 1.0;
+				B = 1.0;
+			} else {
+				R = 1.0;
+				G = 1.0;
+				B = 0;
 			}
 		}
+		glColor3f(R, G, B);
+	}
 
-		models[manipulation - 1]->IncrementSumOfStrokes();
-		//reserver click points
-		cv::Point3d start_point, end_point;
+	void SetDirectVertex(cv::Point3d& start_point, std::vector<Vector3> direct_ver[2], cv::Point3d& end_point)
+	{
 		start_point.x = direct_ver[manipulation - 1][0].x;
 		start_point.y = direct_ver[manipulation - 1][0].y;
 		start_point.z = direct_ver[manipulation - 1][0].z;
 		end_point.x =
-				direct_ver[manipulation - 1][direct_ver[manipulation - 1].size()
-						- 1].x;
+				direct_ver[manipulation - 1][direct_ver[manipulation - 1].size() - 1].x;
 		end_point.y =
-				direct_ver[manipulation - 1][direct_ver[manipulation - 1].size()
-						- 1].y;
+				direct_ver[manipulation - 1][direct_ver[manipulation - 1].size() - 1].y;
 		end_point.z =
-				direct_ver[manipulation - 1][direct_ver[manipulation - 1].size()
-						- 1].z;
-		printf("%f %f %f : %f %f %f \n", start_point.x, start_point.y,
-				start_point.z, end_point.x, end_point.y, end_point.z);
-		int window = 3;
-		if (models[manipulation - 1]->CheckFittingVertices(viewport[window],
-				modelview[window], projection[window], start_point, end_point,
-				false)) {
-			models[manipulation - 1]->UpdateMatrix();
-			models[manipulation - 1]->RenewMeshDataConstruct();
-			models[manipulation - 1]->mLSCM->mMesh->FindTextureMax();
+				direct_ver[manipulation - 1][direct_ver[manipulation - 1].size() - 1].z;
+	}
+
+	void DirectFileInput()
+	{
+		if (fileInput == 1)
+		{
+			fileInput = 2;
+			//for texture transfer in AR
+			cout << "Load -> " << filename << endl;
+			std::ifstream input(filename);
+			direct_ver[0].clear();
+			direct_ver[1].clear();
+			int number = 0;
+			while (input) //until input data continues
+			{
+				char line[1024];
+				input.getline(line, 1024);
+				if (!input)
+					break;
+
+				std::stringstream line_input(line);
+				std::string keyword;
+				line_input >> keyword;
+				//in the case of vertex information
+				if (keyword == "v") {
+					Vector3 ver;
+					line_input >> ver.x >> ver.y >> ver.z;
+					//			printf("%f %f %f\n",ver.x, ver.y, ver.z);
+					direct_ver[number].push_back(ver);
+				} else if (keyword == "d") {
+					number = 1;
+				}
+			}
+
+			models[manipulation - 1]->IncrementSumOfStrokes();
+			//reserver click points
+			cv::Point3d start_point, end_point;
+			start_point.x = direct_ver[manipulation - 1][0].x;
+			start_point.y = direct_ver[manipulation - 1][0].y;
+			start_point.z = direct_ver[manipulation - 1][0].z;
+			end_point.x =
+					direct_ver[manipulation - 1][direct_ver[manipulation - 1].size()
+							- 1].x;
+			end_point.y =
+					direct_ver[manipulation - 1][direct_ver[manipulation - 1].size()
+							- 1].y;
+			end_point.z =
+					direct_ver[manipulation - 1][direct_ver[manipulation - 1].size()
+							- 1].z;
+			printf("%f %f %f : %f %f %f \n", start_point.x, start_point.y,
+					start_point.z, end_point.x, end_point.y, end_point.z);
+			int window = 3;
+			if (models[manipulation - 1]->CheckFittingVertices(viewport[window],
+					modelview[window], projection[window], start_point, end_point,
+					false)) {
+				models[manipulation - 1]->UpdateMatrix();
+				models[manipulation - 1]->RenewMeshDataConstruct();
+				models[manipulation - 1]->mLSCM->mMesh->FindTextureMax();
+			}
+			models[manipulation - 1]->CorrespondTexCoord(viewport[window],
+					modelview[window], projection[window], start_point, end_point,
+					texPoint[0], texPoint[1], clickPoint[0], clickPoint[1], false);
+
+			//<-- finished decompotion and source's mesh selection
 		}
-		models[manipulation - 1]->CorrespondTexCoord(viewport[window],
-				modelview[window], projection[window], start_point, end_point,
-				texPoint[0], texPoint[1], clickPoint[0], clickPoint[1], false);
+		else if( fileInput == 2)
+		{
+			fileInput = 3;
+			keyboard('s', 0, 0);
+		}
+		else if( fileInput == 3)
+		{
+			fileInput = 4;
+			//--->selecting parts of the dest's model
+			manipulation = 2;
 
-		//<-- finished decompotion and source's mesh selection
+			cv::Point3d start_point, end_point;
+			start_point.x = direct_ver[manipulation - 1][0].x;
+			start_point.y = direct_ver[manipulation - 1][0].y;
+			start_point.z = direct_ver[manipulation - 1][0].z;
+			end_point.x =
+					direct_ver[manipulation - 1][direct_ver[manipulation - 1].size()
+							- 1].x;
+			end_point.y =
+					direct_ver[manipulation - 1][direct_ver[manipulation - 1].size()
+							- 1].y;
+			end_point.z =
+					direct_ver[manipulation - 1][direct_ver[manipulation - 1].size()
+							- 1].z;
+			printf("%f %f %f : %f %f %f \n", start_point.x, start_point.y,
+					start_point.z, end_point.x, end_point.y, end_point.z);
+			int window = 4;
+			models[manipulation - 1]->CorrespondTexCoord(viewport[window],
+					modelview[window], projection[window], start_point, end_point,
+					texPoint[0], texPoint[1], clickPoint[0], clickPoint[1], false);
+		}
+		else if( fileInput == 4)
+		{
+			fileInput = 5;
+			keyboard('s', 0, 0);
+		}
+		else if( fileInput == 5)
+		{
+			keyboard('q',0,0);
+		}
 	}
-	else if( fileInput == 2)
-	{
-		fileInput = 3;
-		keyboard('s', 0, 0);
-	}
-	else if( fileInput == 3)
-	{
-		fileInput = 4;
-		//--->selecting parts of the dest's model
-		manipulation = 2;
+}
 
-		cv::Point3d start_point, end_point;
-		start_point.x = direct_ver[manipulation - 1][0].x;
-		start_point.y = direct_ver[manipulation - 1][0].y;
-		start_point.z = direct_ver[manipulation - 1][0].z;
-		end_point.x =
-				direct_ver[manipulation - 1][direct_ver[manipulation - 1].size()
-						- 1].x;
-		end_point.y =
-				direct_ver[manipulation - 1][direct_ver[manipulation - 1].size()
-						- 1].y;
-		end_point.z =
-				direct_ver[manipulation - 1][direct_ver[manipulation - 1].size()
-						- 1].z;
-		printf("%f %f %f : %f %f %f \n", start_point.x, start_point.y,
-				start_point.z, end_point.x, end_point.y, end_point.z);
-		int window = 4;
-		models[manipulation - 1]->CorrespondTexCoord(viewport[window],
-				modelview[window], projection[window], start_point, end_point,
-				texPoint[0], texPoint[1], clickPoint[0], clickPoint[1], false);
-	}
-	else if( fileInput == 4)
-	{
-		fileInput = 5;
-		keyboard('s', 0, 0);
-	}
-	else if( fileInput == 5)
-	{
-		keyboard('q',0,0);
-	}
-
+template<class T>
+bool BoundaryCheck_vector(const std::vector<T> & vec, const int & idx)
+{
+	return vec.size() > static_cast<unsigned int>(idx)? true : false;
 }
 
 void display()
@@ -423,7 +431,8 @@ void keyboard(unsigned char key, int x, int y) {
 
 			TexturePaste(true);
 			string newstr("New"); newstr+= LOADFILENAME2;
-			models[1]->Save3DModel(newstr.c_str());
+//			models[1]->Save3DModel(newstr.c_str());
+			models[1]->Save3DModelRevised(newstr.c_str());
 		}
 		break;
 	}
@@ -575,75 +584,14 @@ void motion(int x, int y) {
 	}
 }
 
-void CallbackEntry(void) {
+void CallbackEntry(void)
+{
 	glutDisplayFunc(display);
 	glutSpecialFunc(specialkey);
 	glutKeyboardFunc(keyboard);
 	glutMouseFunc(mouse);
 	glutMotionFunc(motion);
 	glutIdleFunc(idle);
-}
-
-void DrawModelWithNewTexture(ViewingModel*& model)
-{
-	IndexedMesh * lscmMesh = model->mLSCM->mMesh.get();
-
-	REP(texNumber, model->mTexture.size())
-	{
-		//テクスチャセット
-		model->mTexture[texNumber]->bind();
-		//for warping texture mapping to size (ConstParams::W_WIDTH/2, ConstParams::W_HEIGHT/2)
-		double ratio_x = (ConstParams::W_WIDTH * 0.5 - 0)
-				/ (lscmMesh->mTexMax.x - lscmMesh->mTexMin.x);
-		double ratio_y = (ConstParams::W_HEIGHT * 0.5 - 0)
-				/ (lscmMesh->mTexMax.y - lscmMesh->mTexMin.y); //
-
-		glBegin (GL_TRIANGLES);
-		REP(loopFace, lscmMesh->mFaces.size())
-		{
-			//対象の面を構成する頂点が同一のテクスチャ画像を参照しているかチェック
-			bool compose = false;
-
-			REP(loopVer, lscmMesh->mFaces[loopFace].size())
-			{
-				int verIndex = lscmMesh->mFaces[loopFace].at(loopVer);
-				REP(texID, lscmMesh->mVertices[verIndex].textureNumberArray.size())
-				{
-					if(lscmMesh->mVertices[verIndex].textureNumberArray.at(texID) == texNumber)
-//				if (lscmMesh->mVertices[verIndex].textureNumber == texNumber)
-					{
-						compose = true;
-						break;
-					}
-				}
-			}
-
-			if (!compose) continue;
-
-			REP(loopVer, lscmMesh->mFaces[loopFace].size())
-			{
-				int verIndex = lscmMesh->mFaces[loopFace].at(loopVer);
-				{
-					GLdouble texcos[2], vertex[3];
-					//TEXTURE_ARBを用いているためu-v座標を0-1にしなくてもよい
-					texcos[0] = (lscmMesh->mVertices[verIndex].tex_coord.x
-							- lscmMesh->mTexMin.x) * ratio_x;
-					texcos[1] = (ConstParams::W_HEIGHT / 2
-							- (lscmMesh->mVertices[verIndex].tex_coord.y
-									- lscmMesh->mTexMin.y) * ratio_y) - 0;
-					vertex[0] = lscmMesh->mVertices[verIndex].point.x;
-					vertex[1] = lscmMesh->mVertices[verIndex].point.y;
-					vertex[2] = lscmMesh->mVertices[verIndex].point.z;
-
-					glColor3f(1.0f, 1.0f, 1.0f);
-					glTexCoord2dv(texcos);
-					glVertex3dv(vertex);
-				}
-			}
-		}
-		glEnd();
-		model->mTexture[texNumber]->unbind();
-	}
 }
 
 void DrawModelWithTextures(ViewingModel*& model)
@@ -661,10 +609,9 @@ void DrawModelWithTextures(ViewingModel*& model)
 			//対象の面が同一のテクスチャ画像を参照しているかチェック
 			bool compose = false;
 
-			int faceIdx;
+			int faceIdx = lscmMesh->mTexnumVernum[loopFace].mModelFaceIdx;
 			REP(loopVer, lscmMesh->mFaces[loopFace].size())
 			{
-				faceIdx = lscmMesh->mTexnumVernum[loopFace].mFaceIdx[loopVer];
 				if (lscmMesh->mTexnumVernum[loopFace].mTextureNumber == texNumber)
 				{
 					compose = true;
@@ -786,15 +733,7 @@ void DrawModelMonitor(int x, int y, int w, int h, ViewingModel * model,
 	// with texture mapping
 	else
 	{
-		if(model->isNewTexture())
-		{
-			DrawModelWithNewTexture(model);
-		}
-		else
-		{
-			DrawModelWithTextures(model);
-		}
-
+		DrawModelWithTextures(model);
 #if DEBUG_VISUALIZING_IN_AR == 1
 		//for texture transfer in AR
 		glBegin(GL_LINE_STRIP);
@@ -867,74 +806,6 @@ void DrawModelMonitor(int x, int y, int w, int h, ViewingModel * model,
 	glEnable(GL_DEPTH_TEST);
 }
 
-void DrawAtlasWithNewTexture(ViewingModel*& model)
-{
-	IndexedMesh* lscmMesh = model->mLSCM->mMesh.get();
-
-	REP(texNumber, model->mTexture.size())
-	{
-		//テクスチャセット
-		model->mTexture[texNumber]->bind();
-
-		//for warping texture mapping to size (W_WIDTH/2, W_HEIGHT/2)
-		double ratio_x = (ConstParams::W_WIDTH * 0.5 - 0)
-				/ (lscmMesh->mTexMax.x - lscmMesh->mTexMin.x);
-		double ratio_y = (ConstParams::W_HEIGHT * 0.5 - 0)
-				/ (lscmMesh->mTexMax.y - lscmMesh->mTexMin.y);
-
-//			cout << lscmMesh->mFaces.size() << endl;
-
-		glBegin(GL_TRIANGLES);
-		REP(loopFace, lscmMesh->mFaces.size())
-		{
-			//対象の面を構成する頂点が同一のテクスチャ画像を参照しているかチェック
-			bool compose = false;
-
-			REP(loopVer, lscmMesh->mFaces[loopFace].size())
-			{
-				int verIndex = lscmMesh->mFaces[loopFace].at(loopVer);
-				REP(texID, lscmMesh->mVertices[verIndex].textureNumberArray.size())
-				{
-					if(lscmMesh->mVertices[verIndex].textureNumberArray.at(texID) == texNumber)
-//				if (lscmMesh->mVertices[verIndex].textureNumber == texNumber)
-					{
-						compose = true;
-						break;
-					}
-				}
-			}
-
-			if (!compose) continue;
-
-			REP(loopVer, lscmMesh->mFaces[loopFace].size())
-			{
-				int verIndex = lscmMesh->mFaces[loopFace].at(loopVer);
-				glMaterialfv(GL_FRONT_AND_BACK, GL_AMBIENT, lit_amb);
-				glMaterialfv(GL_FRONT_AND_BACK, GL_DIFFUSE, lit_dif);
-				glMaterialfv(GL_FRONT_AND_BACK, GL_SPECULAR, lit_spc);
-				{
-					GLdouble texcos[2], vertex[2];
-					//TEXTURE_ARBを用いているためu-v座標を0-1にしなくてもよい
-					texcos[0] = (lscmMesh->mVertices[verIndex].tex_coord.x
-							- lscmMesh->mTexMin.x) * ratio_x;
-					texcos[1] = (ConstParams::W_HEIGHT / 2
-							- (lscmMesh->mVertices[verIndex].tex_coord.y
-									- lscmMesh->mTexMin.y) * ratio_y) - 0;
-
-					vertex[0] = lscmMesh->mVertices[verIndex].tex_coord.x;
-					vertex[1] = lscmMesh->mVertices[verIndex].tex_coord.y;
-
-					glColor3f(1.0f, 1.0f, 1.0f);
-					glTexCoord2dv(texcos);
-					glVertex2dv(vertex);
-				}
-			}
-		}
-		glEnd();
-		model->mTexture[texNumber]->unbind();
-	}
-}
-
 void DrawAtlasWithTextures(ViewingModel*& model)
 {
 	IndexedMesh* lscmMesh = model->mLSCM->mMesh.get();
@@ -948,25 +819,25 @@ void DrawAtlasWithTextures(ViewingModel*& model)
 		REP(loopFace, lscmMesh->mFaces.size())
 		{
 			//対象の面を構成する頂点が同一のテクスチャ画像を参照しているかチェック
-			bool compose = false;
-			int faceIdx = 0;
-			REP(loopVer, lscmMesh->mFaces[loopFace].size())
+			if (lscmMesh->mTexnumVernum[loopFace].mTextureNumber != texNumber)
 			{
-				faceIdx = lscmMesh->mTexnumVernum[loopFace].mFaceIdx[loopVer];
-				if (lscmMesh->mTexnumVernum[loopFace].mTextureNumber == texNumber) {
-					compose = true;
-					break;
-				}
+				continue;
 			}
 
-			if (!compose)
-				continue;
+			int corFaceIdx = lscmMesh->mTexnumVernum[loopFace].mModelFaceIdx;
 
 			REP(loopVer, lscmMesh->mFaces[loopFace].size())
 			{
 				//対応関係のための指数
-				int corVerIdx = model->mMesh[texNumber]->mFaces[faceIdx].at(
-						loopVer);
+				//モデルのtexNumber番目のメッシュのfaceIdx番目の面のloopVerの頂点は
+				//lcsmMeshのどの頂点と対応しているかを表す
+				if(model->mMesh[texNumber]->mFaces.size() <= corFaceIdx)
+				{
+					cerr << model->mMesh[texNumber]->mFaces.size() << " TexNum=" << texNumber<<
+							" FaceNum=" << loopFace<< " CorFaceIdx=" << corFaceIdx << endl;
+					assert(model->mMesh[texNumber]->mFaces.size() > corFaceIdx);
+				}
+				int corVerIdx = model->mMesh[texNumber]->mFaces[corFaceIdx].at(loopVer);
 				GLfloat corTexcos[] =
 						{
 								model->mMesh[texNumber]->mVertices[corVerIdx].tex_coord.x,
@@ -1016,10 +887,8 @@ void DrawAtlasPartWithNewTexture(ViewingModel*& model)
 								loopVer)).tex_coord;
 				GLdouble texcos[2], vertex[2];
 
-				//TEXTURE_ARBを用いているためu-v座標を0-1にしなくてもよい
-				texcos[0] = (tex_coord.x - lscmMesh->mTexMin.x) * ratio_x;
-				texcos[1] = (ConstParams::W_HEIGHT / 2
-						- (tex_coord.y - lscmMesh->mTexMin.y) * ratio_y) - 0;
+				texcos[0] = ((tex_coord.x - lscmMesh->mTexMin.x) * ratio_x)/model->mTexture[texNumber]->getWidth();
+				texcos[1] = (ConstParams::W_HEIGHT / 2 - (tex_coord.y - lscmMesh->mTexMin.y) * ratio_y)/model->mTexture[texNumber]->getHeight();
 				vertex[0] = tex_coord.x;
 				vertex[1] = tex_coord.y;
 				glTexCoord2dv(texcos);
@@ -1064,14 +933,7 @@ void DrawTextureMonitor(int x, int y, int w, int h, ViewingModel * model,
 		//showing a texture image
 		if(!textureOFF)
 		{
-			if(model->isNewTexture())
-			{
-				DrawAtlasWithNewTexture(model);
-			}
-			else
-			{
-				DrawAtlasWithTextures(model);
-			}
+			DrawAtlasWithTextures(model);
 		}
 		else
 		{
@@ -1144,11 +1006,10 @@ void DrawTextureMonitor(int x, int y, int w, int h, ViewingModel * model,
 					{
 						//対象の面を構成する頂点が同一のテクスチャ画像を参照しているかチェック
 						bool compose = false;
-						int faceIdx = 0;
 						int corrFaceIdx = model->mSelectedFace.at(loopFace);
+						int faceIdx = lscmMesh->mTexnumVernum[corrFaceIdx].mModelFaceIdx;
 						REP(i,3)
 						{
-							faceIdx = lscmMesh->mTexnumVernum[corrFaceIdx].mFaceIdx[i];
 							if (lscmMesh->mTexnumVernum[corrFaceIdx].mTextureNumber == texNumber)
 							{
 								compose = true;
@@ -1287,111 +1148,240 @@ void PointsDisplay() {
 	cvReleaseImage(&input);
 }
 
+//TODO TT後に追加したテクスチャを参照するよう変更
+//あと、SaveRevisedの部分を変更
 void TexturePaste(bool color)
 {
-	if (color)
-	{
+	//create the new texture image and object
+	const char * tex1 = "warping1.bmp";
+	::ImageType TextureRGB = (CVD::img_load(tex1));
+	Texture * tmpTexture = new Texture( static_cast<const ::ImageType>(TextureRGB), tex1);
+
 #if FEEDBACK_VISUALIZE == 1
-		IplImage * input = cvLoadImage("mesh1.bmp", 0);
-		IplImage * src = cvCreateImage( cvGetSize(input), 8, 3);
-		const char * winName = "Convex Hull";
-		cvZero(src);
+	IplImage * input = cvLoadImage("mesh1.bmp", 0);
+	IplImage * src = cvCreateImage( cvGetSize(input), 8, 3);
+	const char * winName = "Convex Hull";
+	cvZero(src);
 #endif
 
-		//色情報のTransfer
-		//対応点の色情報を移し替える
+//		//色情報のTransfer
+//		//対応点の色情報を移し替える
 //		REP(id,controller.mMatchingPoints.size()){
-		// should use to transfer color field
+//		 should use to transfer color field
 //			int idModel0 = controller.GetHashmap((int)controller.mMatchingPoints[id].first.x, (int)controller.mMatchingPoints[id].first.y, 0);
 //			int idModel1 = controller.GetHashmap((int)controller.mMatchingPoints[id].second.x, (int)controller.mMatchingPoints[id].second.y, 1);
-
+//
 //				printf(" Matching0(%d,%d):(%d,%d)\n",(int)controller.mMatchingPoints[id].first.x, (int)controller.mMatchingPoints[id].first.y, controller.mMeshes[0].at(idModel0).second.x, controller.mMeshes[0].at(idModel0).second.y);
 //				printf(" Matching1(%d,%d):(%d,%d)\n\n",(int)controller.mMatchingPoints[id].second.x, (int)controller.mMatchingPoints[id].second.y, controller.mMeshes[1].at(idModel1).second.x, controller.mMeshes[1].at(idModel1).second.y);
 //				printf("(%d , %d) : (%lf -> %lf)\n", idModel1, idModel0, models[1]->mLSCM->mMesh->mTexParts[idModel1], models[0]->mLSCM->mMesh->mTexParts[idModel0]);
-
+//
 //			models[1]->mLSCM->mMesh->mTexParts[idModel1] = models[0]->mLSCM->mMesh->mTexParts[idModel0];
 #if FEEDBACK_VISUALIZE == 1
 		cvCircle( src, cvPoint((int)controller.mMatchingPoints[id].first.x, (int)controller.mMatchingPoints[id].first.y), 2, CV_RGB( 255, 255, 0 ), CV_FILLED );
 #endif
 //		}
 
-		//Update texture number corresponding to each vertex
-		REP(id, controller.mMeshes[1].size())
+//	//for debug
+//	if(!models[1]->isNewTexture())
+//	{
+//		REP(i,models[1]->mLSCM->mMesh->mVertices.size())
+//		{
+//			cout << i << " " << models[1]->mLSCM->mMesh->mVertices[i].textureNumberArray.size() << endl;
+//		}
+//	}
+
+	IndexedMesh * lscmMesh = models[1]->mLSCM->mMesh.get();
+	int insertedTexNum = models[1]->mTexture.size();
+
+	//Update texture number corresponding to each vertex
+	REP(id, controller.mMeshes[1].size())
+	{
+		int verIndex = controller.mMeshes[1].at(id).first;
+		if( !BoundaryCheck_vector(models[1]->mLSCM->mMesh->mVertices, verIndex) )
 		{
-			models[1]->mLSCM->mMesh->mVertices[controller.mMeshes[1].at(id).first].textureNumberArray.front() = 1;
+			cerr << "Access Error while replacing texture index" << endl;
+			continue;
 		}
 
-		//boundary vertices should be assigned by more than two texture numbers
-		IndexedMesh * lscmMesh = models[1]->mLSCM->mMesh.get();
-		REP(loopFace, lscmMesh->mFaces.size())
+		lscmMesh->mVertices[verIndex].textureNumberArray.push_front(insertedTexNum);
+	}
+
+	//boundary vertices should be assigned by more than two texture numbers
+	REP(loopFace, lscmMesh->mFaces.size())
+	{
+		//対象の面が同一のテクスチャ画像を参照しているかチェック
+		//同一ではない場合は、テクスチャ番号を追加する
+		//対象の面を構成する頂点が同一のテクスチャ画像を参照しているかチェック
+		vector<int> composeArray;
+		bool dif = false;
+		REP(loopVer, lscmMesh->mFaces[loopFace].size())
 		{
-			//対象の面が同一のテクスチャ画像を参照しているかチェック
-			//同一ではない場合は、テクスチャ番号を追加する
-			//対象の面を構成する頂点が同一のテクスチャ画像を参照しているかチェック
-			vector<int> composeArray;
-			bool dif = false;
+			int verIndex = lscmMesh->mFaces[loopFace].at(loopVer);
+			int texIndex = lscmMesh->mVertices[verIndex].textureNumberArray.at(0);
+			composeArray.push_back(texIndex);
+
+			//異なるテクスチャ番号があった場合はフラグをONにする
+			if(!dif && composeArray.at(0) != texIndex)
+			{
+				dif = true;
+			}
+		}
+
+		//参照テクスチャ番号の追加
+		if(dif)
+		{
+			//面を構成する頂点についてチェック
 			REP(loopVer, lscmMesh->mFaces[loopFace].size())
 			{
 				int verIndex = lscmMesh->mFaces[loopFace].at(loopVer);
-				int texIndex = lscmMesh->mVertices[verIndex].textureNumberArray.front();
-				composeArray.push_back(texIndex);
-
-				//異なるテクスチャ番号があった場合はフラグをONにする
-				if(!dif && composeArray.at(0) != texIndex)
+				bool dup = true;
+				REP(nn, composeArray.size())
 				{
-					dif = true;
-				}
-			}
-
-			//参照テクスチャ番号の追加
-			if(dif)
-			{
-				//面を構成する頂点についてチェック
-				REP(loopVer, lscmMesh->mFaces[loopFace].size())
-				{
-					int verIndex = lscmMesh->mFaces[loopFace].at(loopVer);
-					bool dup = true;
-					REP(nn, composeArray.size())
+					int comArrIdx = composeArray.at(nn);
+					REP(i,lscmMesh->mVertices[verIndex].textureNumberArray.size())
 					{
-						int comArrIdx = composeArray.at(nn);
-						REP(i,lscmMesh->mVertices[verIndex].textureNumberArray.size())
+						if(lscmMesh->mVertices[verIndex].textureNumberArray.at(i) != comArrIdx)
 						{
-							if(lscmMesh->mVertices[verIndex].textureNumberArray.at(i) != comArrIdx)
-							{
-								dup = false;
-								break;
-							}
+							dup = false;
+							break;
 						}
+					}
 
-						//新たな参照テクスチャ番号がある場合は登録する
-						if(!dup)
-						{
-							lscmMesh->mVertices[verIndex].textureNumberArray.push_back(comArrIdx);
-						}
+					//新たな参照テクスチャ番号がある場合は登録する
+					if(!dup)
+					{
+						lscmMesh->mVertices[verIndex].textureNumberArray.push_back(comArrIdx);
 					}
 				}
 			}
 		}
+	}
 
-		//create the warped texture
-		const char * tex1 = "warping1.bmp";
-		::ImageType TextureRGB = (CVD::img_load(tex1));
-		Texture * tmpTexture = new Texture( static_cast<const ::ImageType>(TextureRGB), tex1);
-		models[1]->mTexture.push_back(tmpTexture);
+	//削除対象となる面情報 in mMesh
+	std::vector<int> deletableFacets;
 
-		cout << "Texture Transfer DONE!! Left -> Right" << endl;
+	//頂点メッシュ群とLSCMメッシュ群の対応の取り直し
+	int lastMeshIdx = models[1]->mMesh.size();
+	models[1]->mMesh.push_back(boost::shared_ptr < IndexedMesh > (new IndexedMesh()));
 
-		//reset selected mesh
-		REP(i,2) models[i]->SetMeshSelected(false);
+	//mVerticesのインデックスから置き換え対象頂点のインデックスにアクセスするためのハッシュ行列
+	std::vector<int> mLinkage;
+	mLinkage.resize(lscmMesh->mVertices.size());
+	REP(i,lscmMesh->mVertices.size()) mLinkage.at(i) = -1;
+
+	//for warping texture mapping
+	double img_width = (ConstParams::W_WIDTH / 2);
+	double img_height = (ConstParams::W_HEIGHT / 2);
+	double ratio_x = img_width / (lscmMesh->mTexMax.x - lscmMesh->mTexMin.x);
+	double ratio_y = img_height/ (lscmMesh->mTexMax.y - lscmMesh->mTexMin.y); //
+
+	REP(id, controller.mMeshes[1].size())
+	{
+		int verIndex = controller.mMeshes[1].at(id).first;
+		mLinkage[verIndex] = id;
+
+		//inserting each vertex into new mesh structure
+		Vector3 v = lscmMesh->mVertices.at(verIndex).point;
+		Vector2 t = lscmMesh->mVertices.at(verIndex).tex_coord;
+		//unified tex coords between 0 and 1
+		t.x =((t.x - lscmMesh->mTexMin.x) * ratio_x ) / tmpTexture->getWidth();
+		t.y =((t.y - lscmMesh->mTexMin.y) * ratio_y ) / tmpTexture->getHeight();
+
+		models[1]->mMesh[lastMeshIdx]->AddVertex(v,t);
+	}
+
+	//削除される面の登録
+	REP(loopFace, lscmMesh->mFaces.size())
+	{
+		bool sameTexNumber = true;
+		REP(loopVer, lscmMesh->mFaces[loopFace].size())
+		{
+			int verIndex = lscmMesh->mFaces.at(loopFace).at(loopVer);
+
+			if(lscmMesh->mVertices[verIndex].textureNumberArray.at(0) != lastMeshIdx)
+			{
+				sameTexNumber = false;
+				break;
+			}
+		}
+
+		//all vertices in this face are composed of transferred vertices?
+		if(sameTexNumber)
+		{
+			deletableFacets.push_back(loopFace);
+		}
+	}
+
+
+//	*** deletableFaceに登録されている面が通常面群のどの面と対応しているか探索&削除
+	for(int loopFace=deletableFacets.size()-1; loopFace>=0; loopFace--)
+	{
+		int deleteFaceNum = deletableFacets.at(loopFace);
+
+		//	*** deletableFaceに登録されている面が通常面群の対応をとるフェイスとテクスチャインデックス
+		int corFaceIdx = lscmMesh->mTexnumVernum[deleteFaceNum].mModelFaceIdx;
+		int corTexIdx	 = lscmMesh->mTexnumVernum[deleteFaceNum].mTextureNumber;
+		printf("TexIdx=%d, FaceIdx=%d\n", corTexIdx, corFaceIdx);
+
+		//対応関係の取り直し and 対応面の削除
+		REP(i,lscmMesh->mTexnumVernum.size())
+		{
+			int texNum = lscmMesh->mTexnumVernum[i].mTextureNumber;
+			if( texNum != corTexIdx) continue;
+
+			//corFaceIdxよりindex値が大きい部分を更新
+			if(corFaceIdx < lscmMesh->mTexnumVernum[i].mModelFaceIdx)
+			{
+				lscmMesh->mTexnumVernum[i].mModelFaceIdx--;
+			}
+		}
+		models[1]->mMesh[corTexIdx]->mFaces.erase(models[1]->mMesh[corTexIdx]->mFaces.begin() + corFaceIdx);
+	}
+
+//	*** deletableFaceに登録されている各フェイスを構成する頂点のインデックスをmSelectedに対応したインデックスに書き換える．
+//	*** それと同時にmTexnumVernumの対応関係も再構築
+	REP(loopFace, deletableFacets.size())
+	{
+		int deleteFaceNum = deletableFacets.at(loopFace);
+
+//		//	*** deletableFaceに登録されている面が通常面群の対応をとるフェイスとテクスチャインデックス
+//		int corFaceIdx = lscmMesh->mTexnumVernum[deleteFaceNum].mModelFaceIdx;
+//		int corTexIdx	 = lscmMesh->mTexnumVernum[deleteFaceNum].mTextureNumber;
+//		printf("TexIdx=%d, FaceIdx=%d\n", corTexIdx, corFaceIdx);
+//
+//		//対応面の削除
+//		models[1]->mMesh[corTexIdx]->mFaces.erase(models[1]->mMesh[corTexIdx]->mFaces.begin() + corFaceIdx);
+
+		//setting connectivity about facet in new mesh data
+		Facet f = lscmMesh->mFaces.at(deleteFaceNum);
+		models[1]->mMesh[lastMeshIdx]->BeginFacet();
+		REP(loopVer, f.size())
+		{
+			int verIndex = f.at(loopVer);
+			models[1]->mMesh[lastMeshIdx]->AddVertex2Facet(mLinkage.at(verIndex));
+		}
+		models[1]->mMesh[lastMeshIdx]->EndFacet();
+
+		//LSCM面群と通常面群の対応関係の取り直し
+		lscmMesh->mTexnumVernum[deleteFaceNum].mModelFaceIdx	= loopFace;
+		lscmMesh->mTexnumVernum[deleteFaceNum].mTextureNumber= lastMeshIdx;
+	}
+
+	//add the warped texture into mTexture vector
+	models[1]->mTexture.push_back(tmpTexture);
+
+	cout << "Texture Transfer DONE!! Left -> Right" << endl;
+
+	//reset selected mesh
+	REP(i,2) models[i]->SetMeshSelected(false);
 
 #if FEEDBACK_VISUALIZE == 1
-		cvNamedWindow(winName, 1);
-		cvShowImage( winName, src);
-		cvWaitKey(0);
-		cvReleaseImage(&src);
-		cvReleaseImage(&input);
+	cvNamedWindow(winName, 1);
+	cvShowImage( winName, src);
+	cvWaitKey(0);
+	cvReleaseImage(&src);
+	cvReleaseImage(&input);
 #endif
-	}
 }
 
 void Init()
@@ -1420,13 +1410,13 @@ void Init()
 	models[1] = new ViewingModel(LOADFILENAME2.c_str(),model2Name.str().c_str());
 	manipulation = 1;
 
-	models[0]->LoadTexture("itimatsu.bmp");
 	models[0]->mLSCM->run("CG");
 	models[0]->mLSCM->mMesh->FindTextureMax();
+	models[0]->LoadTexture("itimatsu.bmp");
 //
-	models[1]->LoadTexture("wood.bmp");
 	models[1]->mLSCM->run("CG");
 	models[1]->mLSCM->mMesh->FindTextureMax();
+	models[1]->LoadTexture("wood.bmp");
 
 	displayTexture = true;
 	controllObject = SELECT;

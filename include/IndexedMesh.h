@@ -40,6 +40,8 @@ namespace TextureTransfer
 	  std::vector<Facet>  mFaces;					//面情報の頂点座標の格納順序
 	  std::vector<Facet>  mTextureFaces;			//面情報のテクスチャ座標の格納順序
 	  std::vector<ModelCorresPondense> mTexnumVernum; //LSCM頂点群と通常頂点群の対応関係
+	  	  	  	  	  	  	  	  	  	  	  	  	  	  	 //LSCM群のテクスチャ座標は展開図を表示するためにも使用する
+	  	  	  	  	  	  	  	  	  	  	  	  	  	  	 //対して、元々テクスチャマッピングされているモデルの場合、マッピング用のテクスチャ座標も必要。そのための対応関係を表すデータ構造
 
 	  bool mInFacet ;	//faceを追加するときにmutual exclusion的な使い方をする
 

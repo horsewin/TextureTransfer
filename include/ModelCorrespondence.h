@@ -15,16 +15,15 @@ namespace TextureTransfer
 	class ModelCorresPondense
 	{
 	public:
-		ModelCorresPondense(): mTextureNumber(0), mModelFacetsIdx(0), mModelVertexIdx(0){};
-		ModelCorresPondense(const int & lscmIdx, const int & modelTexIdx, const int & modelIdx)
-		: mTextureNumber(lscmIdx), mModelFacetsIdx(modelTexIdx), mModelVertexIdx(modelIdx){};
+		ModelCorresPondense(): mTextureNumber(0), mModelFaceIdx(0){};
+		ModelCorresPondense(const int & lscmIdx, const int & modelFaceIdx)
+		: mTextureNumber(lscmIdx), mModelFaceIdx(modelFaceIdx){};
 		~ModelCorresPondense(){};
 
 	public:
-		std::vector<int> mFaceIdx;
+		std::vector<int> mVertexIdxArray;
 		int mTextureNumber;
-		int mModelFacetsIdx;
-		int mModelVertexIdx;
+		int mModelFaceIdx;
 	};
 }
 
