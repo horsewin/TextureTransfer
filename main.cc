@@ -1,4 +1,4 @@
-//TODO XX->Realのときに,Realオブジェクトのテクスチャ情報
+//TODO Texture Trasfer後のHarmonic field表示がおかしいので修正
 
 //-------------------------------------------------------------------
 // Includes
@@ -37,7 +37,7 @@ const static GLfloat lit_dif[4] = { 1.0, 1.0, 1.0, 1.0 }; /* 拡散光の強さ 
 const static GLfloat lit_spc[4] = { 0.4f, 0.4f, 0.4f, 1.0 }; /* 鏡面反射光の強さ */
 const static GLfloat lit_pos[4] = { 0.0, 0.0, -9.0, 1.0 }; /* 光源の位置 */
 std::string LOADFILENAME("cow");
-std::string LOADFILENAME2("keyboard");
+std::string LOADFILENAME2("Torus");
 std::string LOADFILEFORMAT1(".3ds");
 std::string LOADFILEFORMAT2(".3ds");
 
@@ -828,15 +828,13 @@ void DrawAtlasWithTextures(ViewingModel*& model)
 
 			REP(loopVer, lscmMesh->mFaces[loopFace].size())
 			{
+				if(model->mMesh[texNumber]->mFaces.size() <= static_cast<unsigned int>(corFaceIdx)){
+					assert(model->mMesh[texNumber]->mFaces.size() > corFaceIdx);
+				}
+
 				//対応関係のための指数
 				//モデルのtexNumber番目のメッシュのfaceIdx番目の面のloopVerの頂点は
 				//lcsmMeshのどの頂点と対応しているかを表す
-				if(model->mMesh[texNumber]->mFaces.size() <= corFaceIdx)
-				{
-					cerr << model->mMesh[texNumber]->mFaces.size() << " TexNum=" << texNumber<<
-							" FaceNum=" << loopFace<< " CorFaceIdx=" << corFaceIdx << endl;
-					assert(model->mMesh[texNumber]->mFaces.size() > corFaceIdx);
-				}
 				int corVerIdx = model->mMesh[texNumber]->mFaces[corFaceIdx].at(loopVer);
 				GLfloat corTexcos[] =
 						{
@@ -1148,8 +1146,6 @@ void PointsDisplay() {
 	cvReleaseImage(&input);
 }
 
-//TODO TT後に追加したテクスチャを参照するよう変更
-//あと、SaveRevisedの部分を変更
 void TexturePaste(bool color)
 {
 	//create the new texture image and object

@@ -770,7 +770,7 @@ void ViewingModel::Save3DModelRevised(const char* filename)
 
 					//rewrite the tex coord from vertex pos in Monitor to tex coord in Texture mapping
 					vertices.back().tex_coord.x = mMesh[texNumber]->mVertices[corVerIdx].tex_coord.x;
-					vertices.back().tex_coord.y = 1 - mMesh[texNumber]->mVertices[corVerIdx].tex_coord.y;
+					vertices.back().tex_coord.y = mMesh[texNumber]->mVertices[corVerIdx].tex_coord.y;
 				}
 			}
 
