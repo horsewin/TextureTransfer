@@ -38,6 +38,7 @@ const int weight = 1000;
 #define OVERLAID 1
 #define FILE_WRITE 0		//for debug to check the coord of each vertex
 #define SHIFT_SCALING 0	//for displaying model with shifting and scaling depending on the gravity and size
+#define DEBUG_SAVEMODEL 0
 
 //#define DEBUG_TEXTURE_COORD
 //---------------------------------------------------------------------------
@@ -439,10 +440,10 @@ void ViewingModel::CreateNewTextureFile(Lib3dsFile*& sModel)
 	if (!mTexture.empty()) {
 		REP(tn, mTexture.size() - 1)
 		{
-			com1 << "cp " << mTexture[tn]->GetName() << " "
+			com1 << "cp " << mTexture[tn].get()->GetName() << " "
 					<< sModel->materials[tn]->texture1_map.name;
 			if (system(com1.str().c_str())) {
-				cerr << "Error in ViewingModel: System command is not valid "
+				cerr << "Error in CreateNewTextureFile of ViewingModel: System command is not valid "
 						<< endl;
 				cerr << "Command -> " << com1.str().c_str() << endl;
 			}
@@ -451,20 +452,20 @@ void ViewingModel::CreateNewTextureFile(Lib3dsFile*& sModel)
 		com2 << "cp warping1.bmp "
 				<< sModel->materials[mTexture.size() - 1]->texture1_map.name;
 		if (system(com2.str().c_str())) {
-			cerr << "Error in ViewingModel: System command is not valid "
+			cerr << "Error in CreateNewTextureFile of ViewingModel: System command is not valid "
 					<< endl;
 			cerr << "Command -> " << com2.str().c_str() << endl;
 		}
 	} else {
 		com1 << "cp texture2.bmp " << sModel->materials[0]->texture1_map.name;
 		if (system(com1.str().c_str())) {
-			cerr << "Error in ViewingModel: System command is not valid"
+			cerr << "Error in CreateNewTextureFile of ViewingModel: System command is not valid "
 					<< endl;
 			cerr << "Command -> " << com1.str().c_str() << endl;
 		}
 		com2 << "cp warping1.bmp " << sModel->materials[1]->texture1_map.name;
 		if (system(com2.str().c_str())) {
-			cerr << "Error in ViewingModel: System command is not valid"
+			cerr << "Error in CreateNewTextureFile of ViewingModel: System command is not valid "
 					<< endl;
 			cerr << "Command -> " << com2.str().c_str() << endl;
 		}
@@ -804,9 +805,10 @@ void ViewingModel::Save3DModelRevised(const char* filename)
 			}
 
 		}
-
+#if DEBUG_SAVEMODEL == 1
 		cout << "The number of vertices = " << vertices.size() << endl;
 		cout << "The number of faces= " << faces.size() << endl;
+#endif
 
 		// Creating temporary memory for data of face
 		sModel->meshes[texNumber]->faces = new Lib3dsFace[faces.size()];
@@ -885,44 +887,6 @@ void ViewingModel::Save3DModelRevised(const char* filename)
 	}
 	cout << "Exec: " << com.str().c_str() << endl;
 	cout << "Save 3DS..." << saveName.str().c_str() << endl;
-}
-
-deque<Texture*> ViewingModel::LoadTextures(Lib3dsFile* pModel) {
-	assert(pModel);
-	// Creation of the texture's list
-	deque<Texture*> texList;
-	texList.clear();
-	//create dirpath of the loaded model
-	string dirPath(mFullPath), tmpPath;
-	tmpPath = strrchr(dirPath.c_str(), '/');
-	dirPath.resize(dirPath.size() - tmpPath.size());
-	// Load a set of textures
-	REP(material, pModel->nmaterials)
-	{
-		// Acquire a texture name
-		string sTexFile = pModel->materials[material]->texture1_map.name;
-
-		if (!sTexFile.empty()) {
-			string textureFilename = dirPath + "/" + sTexFile;
-
-			const char * sp = strrchr(sTexFile.c_str(), '.');
-			if (strcmp(sp, ".gif") == 0 || strcmp(sp, ".GIF") == 0) {
-				cerr << "cvLoadImage does not support GIF format! -> "
-						<< textureFilename.c_str() << endl;
-				continue;
-			}
-
-			cout << "Load : " << textureFilename.c_str() << endl;
-
-			// Create a texture object and set it to the list
-			::ImageType TextureRGB = (img_load(textureFilename));
-			Texture* tmpTexture = new Texture(
-					static_cast<const ::ImageType>(TextureRGB),
-					textureFilename.c_str());
-			texList.push_back(tmpTexture);
-		}
-	}
-	return (texList);
 }
 
 void ViewingModel::AdjustmentSizeAndPosition() {
@@ -1474,8 +1438,55 @@ int ViewingModel::GetMeshInnerFacesSize(const int& outer_loop,
 	return mMesh[outer_loop]->mFaces[inner_loop].size();
 }
 
-void ViewingModel::IncrementSumOfStrokes() {
+void ViewingModel::IncrementSumOfStrokes()
+{
 	this->mSumOfStrokes++;
+}
+
+std::deque< boost::shared_ptr<Texture> > ViewingModel::LoadTextures(Lib3dsFile* pModel)
+{
+	assert(pModel);
+
+	// create the texture's list
+	std::deque< boost::shared_ptr<Texture> >  texList;
+	texList.clear();
+
+	// create dirpath of the loaded model
+	string dirPath(mFullPath), tmpPath;
+	tmpPath = strrchr(dirPath.c_str(), '/');
+	dirPath.resize(dirPath.size() - tmpPath.size());
+
+	// Load a set of textures
+	REP(material, pModel->nmaterials)
+	{
+		// Acquire a texture name
+		string sTexFile = pModel->materials[material]->texture1_map.name;
+
+		if (!sTexFile.empty())
+		{
+			string textureFilename = dirPath + "/" + sTexFile;
+
+			const char * sp = strrchr(sTexFile.c_str(), '.');
+			if (strcmp(sp, ".gif") == 0 || strcmp(sp, ".GIF") == 0)
+			{
+				cerr << "cvLoadImage does not support GIF format! -> "
+						<< textureFilename.c_str() << endl;
+				continue;
+			}
+
+//			cout << "Load : " << textureFilename.c_str() << endl;
+
+			// Create a texture object and set it to the list
+			::ImageType TextureRGB = (img_load(textureFilename));
+			boost::shared_ptr<Texture> tmpTexture = boost::shared_ptr<Texture>
+			(
+					new Texture( static_cast<const ::ImageType>(TextureRGB), textureFilename.c_str())
+			);
+			texList.push_back(tmpTexture);
+		}
+	}
+
+	return (texList);
 }
 
 void ViewingModel::LoadTexture(const char* filename)
@@ -1483,7 +1494,10 @@ void ViewingModel::LoadTexture(const char* filename)
 	if (mHasTexture) return;
 
 	::ImageType TextureRGB = (img_load(filename));
-	Texture* tmpTexture = new Texture(static_cast<const ::ImageType>(TextureRGB), filename);
+	boost::shared_ptr<Texture> tmpTexture = boost::shared_ptr<Texture>
+	(
+			new Texture(static_cast<const ::ImageType>(TextureRGB), filename)
+	);
 
 	mTexture.push_back(tmpTexture);
 
@@ -1515,6 +1529,7 @@ void ViewingModel::LoadTexture(const char* filename)
 	}
 	//new texture is assigned to this model
 	mNewTexture = true;
+	cout << "This model has loaded new texture!!!" << endl;
 }
 
 	/*

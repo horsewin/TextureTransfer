@@ -58,7 +58,9 @@
 //---------------------------------------------------------------------------
 namespace TextureTransfer
 {
-	char* type_solver;
+	#define DEBUG_SHOW_TIMEANDITERATION 0
+
+char* type_solver;
 	using namespace std;
 
 	/* dot product */
@@ -119,7 +121,8 @@ namespace TextureTransfer
 	// 4) Solve the equation with OpenNL
 	// 5) Copy OpenNL solution to the u,v coordinates
 
-	void LSCM::apply() {
+	void LSCM::apply()
+	{
 	  int nb_vertices = mMesh->mVertices.size() ;
 	  project() ;
 	  nlNewContext() ;
@@ -210,20 +213,23 @@ namespace TextureTransfer
 	  setup_lscm() ;
 	  nlEnd(NL_MATRIX) ;
 	  nlEnd(NL_SYSTEM) ;
-	  std::cout << "Vertex(" << mMesh->mVertices.size() << ") Face(" <<
-			  mMesh->mFaces.size() << ") Solving ..." << std::endl ;
+//	  std::cout << "Vertex(" << mMesh->mVertices.size() << ") Face(" <<
+//			  mMesh->mFaces.size() << ") Solving ..." << std::endl ;
 	  nlSolve() ;
 	  solver_to_mesh() ;
+#if DEBUG_SHOW_TIMEANDITERATION == 1
 	  double time ;
 	  NLint iterations;
 	  nlGetDoublev(NL_ELAPSED_TIME, &time) ;
 	  nlGetIntergerv(NL_USED_ITERATIONS, &iterations);
 	  std::cout << "Solver time: " << time <<" , ";
 	  std::cout << "Used iterations: " << iterations << std::endl ;
+#endif
 	  nlDeleteContext(nlGetCurrent()) ;
 	}
 
-	void LSCM::setup_lscm() {
+	void LSCM::setup_lscm()
+	{
 	  for(unsigned int i=0; i<mMesh->mFaces.size(); i++) {
 		const Facet& F = mMesh->mFaces[i] ;
 		setup_lscm(F) ;
@@ -334,13 +340,15 @@ namespace TextureTransfer
 	/**
 	 * copies u,v coordinates from OpenNL solver to the mesh.
 	 */
-	void LSCM::solver_to_mesh() {
-	  for(unsigned int i=0; i<mMesh->mVertices.size(); i++) {
-		Vertex& it = mMesh->mVertices[i] ;
-		double u = nlGetVariable(2 * it.id    ) ;
-		double v = nlGetVariable(2 * it.id + 1) ;
-		it.tex_coord = Vector2(u,v) ;
-	  }
+	void LSCM::solver_to_mesh()
+	{
+		for(unsigned int i=0; i<mMesh->mVertices.size(); i++)
+		{
+			Vertex& it = mMesh->mVertices[i] ;
+			double u = nlGetVariable(2 * it.id    ) ;
+			double v = nlGetVariable(2 * it.id + 1) ;
+			it.tex_coord = Vector2(u,v) ;
+		}
 	}
 
 	/**

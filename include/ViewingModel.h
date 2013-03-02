@@ -18,6 +18,8 @@
 #include <opencv/highgui.h>
 
 #include <boost/shared_ptr.hpp>
+#include <boost/ptr_container/ptr_vector.hpp>
+#include <boost/ptr_container/ptr_deque.hpp>
 
 #include <vector>
 #include <deque>
@@ -144,18 +146,18 @@ namespace TextureTransfer
 		bool LoadMatrixFromObj();
 		void Load3DSModel();
 		void LoadObjModel(const char* modelName = NULL);
-		std::deque<Texture*> LoadTextures(Lib3dsFile * pModel);
+		std::deque< boost::shared_ptr<Texture> > LoadTextures(Lib3dsFile * pModel);
 		void AdjustmentSizeAndPosition();
 
 		/* Set Functions */
 		void SetSelectedMeshData(const int& loopVer);
 		void SetSelectedFaces(const int& loopTex);
-	void CreateNewTextureFile(Lib3dsFile*& sModel);
+		void CreateNewTextureFile(Lib3dsFile*& sModel);
 
-		public:
+	public:
 		boost::shared_ptr<LSCM> mLSCM;
 
-		std::deque<Texture *> mTexture;			// A set of Textures 2011.6.7
+		std::deque< boost::shared_ptr<Texture> > mTexture;			// A set of Textures 2011.6.7
 
 		std::pair<int,IndexedMesh> mSelectedMesh;	//first : an index for the matrix having harmonic field(mTexparts), second: a set of meshes
 		std::vector<int> mSelectedFace;				//corresponding to mLSCM's face index

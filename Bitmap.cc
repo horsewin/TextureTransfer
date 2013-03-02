@@ -115,7 +115,8 @@ int WriteBitmapFromGL(const char* filename, const int & viewport_x, const int & 
 	// メモリ確保
 	pixel_data = (GLubyte*)malloc((glByteWidth)*(height)*(sizeof(GLubyte)));
 	// OpenGLによるピクセルデータの読み出し
-	glReadBuffer(GL_FRONT);
+//	glReadBuffer(GL_FRONT);
+	glReadBuffer(GL_BACK);
 	glReadPixels(
 		viewport_x,viewport_y,
 		width,height,
